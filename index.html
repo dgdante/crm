@@ -1,0 +1,3097 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CRM Inmobiliario</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;font-size:14px;min-height:100vh}
+.app{max-width:1100px;margin:0 auto;padding:1.5rem}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #e0dfd8}
+.logo{font-size:20px;font-weight:500;letter-spacing:-.3px}
+.logo span{color:#185FA5}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid #e0dfd8;margin-bottom:1.5rem;overflow-x:auto}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+.tab:hover{color:#1a1a1a}
+.tab.active{color:#185FA5;border-bottom-color:#185FA5}
+table{border-collapse:collapse;width:100%;table-layout:fixed}
+thead th{background:#f0efe9;padding:9px 12px;text-align:left;font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e0dfd8;cursor:pointer;white-space:nowrap}
+thead th:hover{color:#1a1a1a}
+tbody tr{border-bottom:1px solid #ece9e0;transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#faf9f5}
+td{padding:9px 12px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.stat-card{background:#fff;border-radius:10px;padding:.85rem 1rem;border:1px solid #e8e6de}
+.stat-label{font-size:11px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.stat-val{font-size:24px;font-weight:500}
+.stat-sub{font-size:11px;color:#aaa;margin-top:3px}
+.progress-bar{height:4px;background:#e8e6de;border-radius:2px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:#185FA5;border-radius:2px;transition:width .3s}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px}
+.badge-aplus{background:#EEEDFE;color:#3C3489}
+.badge-a{background:#E6F1FB;color:#0C447C}
+.badge-b{background:#f0efe9;color:#555}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px}
+.tag-llamada{background:#E1F5EE;color:#085041}
+.tag-whatsapp{background:#EAF3DE;color:#27500A}
+.tag-reunion{background:#FAEEDA;color:#633806}
+.tag-cafe{background:#EAF3DE;color:#27500A}
+.tag-almuerzo{background:#EAF3DE;color:#27500A}
+.tag-popby{background:#EAF3DE;color:#27500A}
+.tag-llamadoverde{background:#EAF3DE;color:#27500A}
+.tag-llamada{background:#E1F5EE;color:#085041}
+.tag-cumple{background:#FBEAF0;color:#72243E}
+.tag-visita{background:#FAECE7;color:#712B13}
+.tag-envio{background:#E6F1FB;color:#0C447C}
+.tag-cumple{background:#FBEAF0;color:#72243E}
+.tag-otro{background:#f0efe9;color:#555}
+.opp-pl{background:#EEEDFE;color:#3C3489}
+.opp-pb{background:#E1F5EE;color:#085041}
+.opp-ref{background:#FAEEDA;color:#633806}
+.status-activo{background:#EAF3DE;color:#27500A}
+.status-negociacion{background:#FAEEDA;color:#633806}
+.status-cerrado{background:#E6F1FB;color:#0C447C}
+.status-caido{background:#FCEBEB;color:#791F1F}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:#3B6D11}.dot-yellow{background:#854F0B}.dot-red{background:#A32D2D}
+.cold-green{color:#3B6D11}.cold-yellow{color:#854F0B}.cold-red{color:#A32D2D}
+.cold-cell{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+.name-cell{display:flex;align-items:center;gap:8px}
+.avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+select.tier-sel{font-size:12px;padding:2px 6px;border:1px solid #e0dfd8;border-radius:6px;background:#fff;cursor:pointer}
+.alert-card{border-radius:8px;padding:.65rem 1rem;font-size:13px;display:flex;align-items:center;gap:10px;border:1px solid #e0dfd8;margin-bottom:6px}
+.alert-urgent{background:#FBEAF0;border-color:#F4C0D1}
+.alert-soon{background:#FAEEDA;border-color:#FAC775}
+.cal-link{font-size:12px;color:#185FA5;text-decoration:none;white-space:nowrap}
+.upload-btn{background:#E6F1FB;color:#0C447C;border:none;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+.tracking-num{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#534AB7}
+.btn-primary{background:#185FA5;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-primary:hover{background:#0f4a82}
+.btn-sec{padding:8px 14px;font-size:13px;border-radius:8px;cursor:pointer;border:1px solid #e0dfd8;background:#fff;color:#1a1a1a}
+.btn-sec:hover{background:#f5f4f0}
+.btn-opp{background:#534AB7;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500}
+.btn-opp:hover{background:#3C3489}
+.legend{display:flex;gap:14px;align-items:center;font-size:11px;color:#888}
+.table-wrap{border:1px solid #e0dfd8;border-radius:10px;overflow:hidden;background:#fff}
+.pag-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-top:1px solid #e0dfd8;background:#f5f4f0}
+input[type=text],input[type=date],input[type=datetime-local],select,textarea{border:1px solid #e0dfd8;border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:#1a1a1a;width:100%;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:#185FA5}
+textarea{resize:none;height:56px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:1.5rem;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:500;margin-bottom:1.25rem}
+.field-label{font-size:12px;color:#888;display:block;margin-bottom:4px;margin-top:12px}
+.req{color:#A32D2D}
+.field-error{font-size:11px;color:#A32D2D;margin-top:3px;display:none}
+.cal-block{margin-top:14px;padding:14px;background:#f5f4f0;border-radius:10px;border:1px solid #e0dfd8}
+.opp-block{margin-top:14px;padding:14px;background:#EEEDFE30;border-radius:10px;border:1px solid #AFA9EC}
+.opp-block-title{font-size:13px;font-weight:500;color:#3C3489;margin-bottom:2px}
+.opp-block-sub{font-size:11px;color:#888;margin-bottom:8px}
+.btn-cal{background:#0F6E56;color:#fff;border:none;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;width:100%;margin-top:12px}
+.btn-cal:hover{background:#085041}
+.btn-cal:disabled{opacity:.4;cursor:default}
+.modal-btns{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end}
+.coming-soon{text-align:center;padding:5rem 1rem;color:#aaa}
+.coming-soon .cs-title{font-size:18px;font-weight:500;color:#888;margin-bottom:8px}
+.coming-soon .cs-sub{font-size:13px}
+.preview-track{background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e0dfd8;margin-top:10px}
+.preview-track-label{font-size:11px;color:#888;margin-bottom:3px}
+</style>
+</head>
+<body>
+<script>
+window.onerror = function(msg, src, line, col, err){
+  alert('ERROR JS en linea '+line+': '+msg);
+  return false;
+};
+</script>
+
+<<script>
+// ══════════════════════════════════════════════════
+//  GOOGLE SHEETS SYNC — via Apps Script
+// ══════════════════════════════════════════════════
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyKGy6WO6HzQzx570PP5yJ90rZVkNloROt7OB_ZGIewO4p_lirMGPEq7bo9yPI7xSRe/exec';
+
+async function saveToSheets() {
+  // Never save if contacts is empty - would overwrite good data
+  if(contacts.length === 0) {
+    showSyncStatus('Importá el CSV primero', '#854F0B');
+    return;
+  }
+  showSyncStatus('Guardando...', '#185FA5');
+  // Solo guardamos tiers no-B para reducir tamaño
+  const tiersToSave = {};
+  Object.keys(tiers).forEach(k=>{ if(tiers[k]!=='B') tiersToSave[k]=tiers[k]; });
+  // Solo guardamos touches que tienen datos
+  const touchesToSave = {};
+  Object.keys(touches).forEach(k=>{ if(touches[k]&&touches[k].length>0) touchesToSave[k]=touches[k]; });
+  const data = {
+    touches: touchesToSave, tiers: tiersToSave, opps, oppCounters,
+    carteraProps, carteraPLs, propiedadesVendidas,
+    compradoresProsp, compradorePBs, compradoresVendidos,
+    reservas, objetivosMes, gastos, trkData
+  };
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'text/plain' },
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) { json = {ok: true}; }
+    showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}), '#3B6D11');
+  } catch(e) {
+    // Try no-cors as fallback - fire and forget
+    try {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'text/plain' },
+        mode: 'no-cors',
+        redirect: 'follow'
+      });
+      showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}), '#3B6D11');
+    } catch(e2) {
+      showSyncStatus('Error: ' + e2.message, '#A32D2D');
+    }
+  }
+}
+
+async function loadFromSheets() {
+  showSyncStatus('Cargando...', '#185FA5');
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=load', { redirect: 'follow' });
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) { showSyncStatus('Error parseando datos', '#A32D2D'); return; }
+    if(!json.ok || !json.data) { showSyncStatus('Sin datos previos', '#888'); return; }
+    const d = JSON.parse(json.data);
+    // contacts come from CSV, not from Sheets
+    if(d.touches)     touches=d.touches;
+    if(d.tiers)       tiers=d.tiers;
+    if(d.opps)        opps=d.opps;
+    if(d.oppCounters) oppCounters=d.oppCounters;
+    if(d.carteraProps) carteraProps=d.carteraProps;
+    if(d.carteraPLs)  carteraPLs=d.carteraPLs;
+    if(d.propiedadesVendidas) propiedadesVendidas=d.propiedadesVendidas;
+    if(d.compradoresProsp) compradoresProsp=d.compradoresProsp;
+    if(d.compradorePBs) compradorePBs=d.compradorePBs;
+    if(d.compradoresVendidos) compradoresVendidos=d.compradoresVendidos;
+    if(d.reservas)    reservas=d.reservas;
+    if(d.objetivosMes) objetivosMes=d.objetivosMes;
+    if(d.gastos)      gastos=d.gastos;
+    if(d.trkData){
+      // JSON converts numeric keys to strings - normalize back to numbers
+      trkData={};
+      Object.keys(d.trkData).forEach(k=>{
+        const num=parseInt(k);
+        trkData[isNaN(num)?k:num]=d.trkData[k];
+      });
+      // Ensure all 52 weeks exist
+      if(typeof WEEKS!=='undefined') WEEKS.forEach(w=>{
+        if(!trkData[w.num]) trkData[w.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+        if(!trkData[w.num].cart) trkData[w.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
+        if(!trkData[w.num].comp) trkData[w.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
+        if(!trkData[w.num].prosp) trkData[w.num].prosp={Reuniones:[]};
+      });
+    }
+    showSyncStatus('✓ Datos cargados', '#3B6D11');
+    try{updateStats();}catch(e){}
+    try{applyFilters();}catch(e){}
+    try{checkBirthdays();}catch(e){}
+    const activeTab=document.querySelector('.tab.active');
+    if(activeTab) activeTab.click();
+  } catch(e) {
+    showSyncStatus('Error cargando: ' + e.message, '#A32D2D');
+  }
+}
+
+function showSyncStatus(msg, color) {
+  const el=document.getElementById('sync-status');
+  if(el){ el.textContent=msg; el.style.color=color; }
+}
+
+// Auto-save cada 60 segundos solo si hay contactos Y tiers cargados
+setInterval(()=>{ if(contacts.length>0 && Object.keys(tiers).length>0) saveToSheets(); }, 60000);
+
+// Cargar al abrir
+window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
+</script>
+
+<div class="app">
+  <div class="header">
+    <div class="logo">CRM <span>Inmobiliario</span></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="sync-status" style="font-size:12px;color:#888"></span>
+      <button onclick="saveToSheets()" style="font-size:12px;padding:5px 12px;background:#185FA5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:500">💾 Guardar</button>
+      <button onclick="loadFromSheets()" style="font-size:12px;padding:5px 12px;background:#f5f4f0;color:#1a1a1a;border:1px solid #e0dfd8;border-radius:8px;cursor:pointer">↓ Cargar</button>
+      <div style="font-size:12px;color:#aaa" id="header-sub">—</div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="showTab('db')">Data Base</div>
+    <div class="tab" onclick="showTab('trackeo')">Trackeo Semanal</div>
+    <div class="tab" onclick="showTab('cartera')">Cartera</div>
+    <div class="tab" onclick="showTab('compradores')">Compradores</div>
+    <div class="tab" onclick="showTab('dante')">Facturación</div>
+    <div class="tab" onclick="showTab('team')">Team consolidado</div>
+    <div class="tab" onclick="showTab('balance')">Balance</div>
+    <div class="tab" onclick="showTab('opps')">Oportunidades</div>
+  </div>
+
+  <!-- TAB: DATA BASE -->
+  <div id="tab-db">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
+      <div>
+        <div style="font-size:18px;font-weight:500" id="db-title">Data Base</div>
+        <div style="font-size:13px;color:#888;margin-top:2px" id="subtitle-main">Importá tu CSV de Google Contacts para comenzar</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="search" placeholder="Buscar contacto..." oninput="applyFilters()" style="width:180px"/>
+        <select id="filter-tier" onchange="applyFilters()" style="width:auto">
+          <option value="">Todos los niveles</option>
+          <option value="A+">A+</option>
+          <option value="A">A</option>
+          <option value="B">B</option>
+        </select>
+        <select id="filter-cold" onchange="applyFilters()" style="width:auto">
+          <option value="">Todos los estados</option>
+          <option value="green">Al día (0–14d)</option>
+          <option value="yellow">Tibio (15–30d)</option>
+          <option value="red">Frío (+30d)</option>
+        </select>
+        <button class="upload-btn" onclick="document.getElementById('csv-in').click()">Importar CSV</button>
+        <input type="file" id="csv-in" accept=".csv" style="display:none" onchange="handleFile(event)"/>
+      </div>
+    </div>
+
+    <div id="birthday-alerts" style="display:none;margin-bottom:1rem"></div>
+
+    <div id="drop-zone" style="display:none;border:2px dashed #e0dfd8;border-radius:10px;padding:2rem;text-align:center;margin-bottom:1rem;cursor:pointer;transition:background .15s"
+      ondragover="event.preventDefault();this.style.background='#EAF3DE';this.style.borderColor='#3B6D11'"
+      ondragleave="this.style.background='';this.style.borderColor='#e0dfd8'"
+      ondrop="event.preventDefault();this.style.background='';this.style.borderColor='#e0dfd8';handleDrop(event)">
+      <div style="font-size:24px;margin-bottom:8px">📂</div>
+      <div style="font-size:14px;font-weight:500;color:#888">Arrastrá tu CSV aquí</div>
+      <div style="font-size:12px;color:#aaa;margin-top:4px">o hacé clic en "Importar CSV" arriba</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">
+      <div class="stat-card"><div class="stat-label">Contactos</div><div class="stat-val" id="st-total">—</div></div>
+      <div class="stat-card" style="border-left:3px solid #3C3489"><div class="stat-label">A+ activos</div><div class="stat-val" id="st-aplus" style="color:#3C3489">—</div><div class="stat-sub" id="st-aplus-sub">corazón del negocio</div></div>
+      <div class="stat-card" style="border-left:3px solid #0C447C"><div class="stat-label">A activos</div><div class="stat-val" id="st-a" style="color:#0C447C">—</div><div class="stat-sub" id="st-a-sub">aspirantes a A+</div></div>
+      <div class="stat-card" style="border-left:3px solid #3B6D11"><div class="stat-label">% de A+</div><div class="stat-val" id="st-pct-aplus" style="color:#3B6D11">—</div><div class="stat-sub">sobre A+ + A</div></div>
+      <div class="stat-card"><div class="stat-label">Reuniones semana</div><div class="stat-val" id="st-meetings">0</div><div class="progress-bar"><div class="progress-fill" id="prog-bar" style="width:0%"></div></div><div class="stat-sub" id="prog-label">0% de meta</div></div>
+      <div class="stat-card"><div class="stat-label">Sin toque urgente</div><div class="stat-val" id="st-red" style="color:#A32D2D">—</div><div class="stat-sub">A+ >20d · A >60d</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:11px;margin-bottom:8px">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#E53E3E;display:inline-block"></span> A+ sin toque &gt;20d</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#D97706;display:inline-block"></span> A+ sin toque &gt;10d / A sin toque &gt;30d</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#3C3489;display:inline-block"></span> A+ al día</span>
+      </div>
+      <div class="legend">
+        <span><span class="dot dot-green"></span> Al día (0–14d)</span>
+        <span><span class="dot dot-yellow"></span> Tibio (15–30d)</span>
+        <span><span class="dot dot-red"></span> Frío (+30d)</span>
+      </div>
+      <div style="font-size:11px;color:#aaa" id="filter-summary"></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%" onclick="sortBy('name')">Nombre ↕</th>
+            <th style="width:8%" onclick="sortBy('tier')">Nivel ↕</th>
+            <th style="width:13%" onclick="sortBy('cold')">Sin toque ↕</th>
+            <th style="width:10%" onclick="sortBy('lastTouch')">Último ↕</th>
+            <th style="width:10%">Tipo</th>
+            <th style="width:10%">Oport.</th>
+            <th style="width:8%" onclick="sortBy('birthday')">Cumple ↕</th>
+            <th style="width:19%">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="pag-row">
+        <span style="font-size:13px;color:#888" id="pag-info">—</span>
+        <div style="display:flex;gap:4px">
+          <button onclick="changePage(-1)" id="btn-prev" class="btn-sec" style="font-size:12px;padding:5px 12px">← Ant.</button>
+          <button onclick="changePage(1)" id="btn-next" class="btn-sec" style="font-size:12px;padding:5px 12px">Sig. →</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:10px;text-align:right">
+      <button class="btn-sec" style="font-size:12px" onclick="clearAll()">Limpiar datos</button>
+    </div>
+  </div>
+
+  <!-- TAB: OPORTUNIDADES -->
+  <div id="tab-opps" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
+      <div>
+        <div style="font-size:18px;font-weight:500">Oportunidades</div>
+        <div style="font-size:13px;color:#888;margin-top:2px">PreListings, PreBuyings y Referidos generados por toques</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <select id="opp-filter-type" onchange="renderOpps()" style="width:auto">
+          <option value="">Todos los tipos</option>
+          <option value="PL">PreListing</option>
+          <option value="PB">PreBuying</option>
+          <option value="REF">Referido</option>
+        </select>
+        <select id="opp-filter-status" onchange="renderOpps()" style="width:auto">
+          <option value="">Todos los estados</option>
+          <option value="activo">Activo</option>
+          <option value="negociacion">En negociación</option>
+          <option value="cerrado">Cerrado</option>
+          <option value="caido">Caído</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">
+      <div class="stat-card"><div class="stat-label">Total</div><div class="stat-val" id="opp-st-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">PreListings</div><div class="stat-val" id="opp-st-pl" style="color:#534AB7">0</div></div>
+      <div class="stat-card"><div class="stat-label">PreBuyings</div><div class="stat-val" id="opp-st-pb" style="color:#085041">0</div></div>
+      <div class="stat-card"><div class="stat-label">Referidos</div><div class="stat-val" id="opp-st-ref" style="color:#633806">0</div></div>
+      <div class="stat-card"><div class="stat-label">Activos</div><div class="stat-val" id="opp-st-activos" style="color:#3B6D11">0</div></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:14%">Trackeo</th>
+            <th style="width:10%">Tipo</th>
+            <th style="width:18%">Contacto origen</th>
+            <th style="width:20%">Propiedad / dirección</th>
+            <th style="width:11%">Fecha</th>
+            <th style="width:12%">Estado</th>
+            <th style="width:15%">Toque origen</th>
+          </tr>
+        </thead>
+        <tbody id="opps-tbody"></tbody>
+      </table>
+      <div class="pag-row">
+        <span style="font-size:13px;color:#888" id="opp-pag-info">—</span>
+        <div style="display:flex;gap:4px">
+          <button onclick="changeOppPage(-1)" id="opp-btn-prev" class="btn-sec" style="font-size:12px;padding:5px 12px">← Ant.</button>
+          <button onclick="changeOppPage(1)" id="opp-btn-next" class="btn-sec" style="font-size:12px;padding:5px 12px">Sig. →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: TRACKEO SEMANAL -->
+  <div id="tab-trackeo" style="display:none">
+    <div id="trackeo-content"></div>
+  </div>
+
+  
+
+  
+  <!-- TAB: CARTERA -->
+  <div id="tab-cartera" style="display:none">
+    <div id="cartera-view"></div>
+  </div>
+
+  <!-- TAB: BALANCE -->
+  <div id="tab-balance" style="display:none">
+    <div id="balance-view"></div>
+  </div>
+
+  <!-- TAB: COMPRADORES -->
+  <div id="tab-compradores" style="display:none">
+    <div id="compradores-view"></div>
+  </div>
+
+  <!-- TAB: R TEAM ACUM -->
+  <div id="tab-team" style="display:none">
+    <div class="coming-soon">
+      <div class="cs-title">R Team Acum</div>
+      <div class="cs-sub">Próximamente — resultados acumulados del equipo</div>
+    </div>
+  </div>
+
+  <!-- TAB: DETALLE DANTE -->
+  <div id="tab-dante" style="display:none">
+    <div id="dante-view"></div>
+  </div>
+</div>
+
+<!-- MODAL: TOQUE -->
+<div class="overlay" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Registrar toque</h3>
+
+    <label class="field-label">Tipo de toque</label>
+    <select id="m-type">
+      <optgroup label="✅ Prospección (suman al Trackeo Semanal)">
+        <option value="cafe">Café</option>
+        <option value="almuerzo">Almuerzo</option>
+        <option value="popby">Pop By</option>
+        <option value="llamadoverde">Llamado Verde</option>
+      </optgroup>
+      <optgroup label="Otros toques (no suman)">
+        <option value="llamada">Llamada</option>
+        <option value="whatsapp">WhatsApp</option>
+        <option value="cumple">Saludo de cumpleaños</option>
+        <option value="otro">Otro</option>
+      </optgroup>
+    </select>
+
+    <label class="field-label">Fecha del toque</label>
+    <input type="date" id="m-date"/>
+
+    <label class="field-label">Nota (opcional)</label>
+    <textarea id="m-note" placeholder="Ej: Interesado en zona norte, presupuesto $180k..."></textarea>
+
+    <!-- BLOQUE OPORTUNIDAD -->
+    <div class="opp-block">
+      <div class="opp-block-title">¿Este toque generó una oportunidad?</div>
+      <div class="opp-block-sub">Podés registrarla ahora o después desde el historial del contacto</div>
+      <label class="field-label">Resultado del toque</label>
+      <select id="m-opp-type" onchange="toggleOppFields()">
+        <option value="">Sin resultado por ahora</option>
+        <option value="PL">PreListing — posible captación</option>
+        <option value="PB">PreBuying — posible compra</option>
+        <option value="REF">Referido — nuevo contacto</option>
+      </select>
+      <div id="opp-fields" style="display:none">
+        <label class="field-label">Fecha en que surgió la oportunidad</label>
+        <input type="date" id="m-opp-date"/>
+        <label class="field-label">Propiedad / dirección involucrada</label>
+        <input type="text" id="m-opp-prop" placeholder="Ej: Calle 13 N°456, La Plata"/>
+        <label class="field-label">Estado inicial</label>
+        <select id="m-opp-status">
+          <option value="activo">Activo</option>
+          <option value="negociacion">En negociación</option>
+          <option value="cerrado">Cerrado</option>
+          <option value="caido">Caído</option>
+        </select>
+        <div class="preview-track">
+          <div class="preview-track-label">Número de trackeo generado automáticamente</div>
+          <div class="tracking-num" id="preview-tracking">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE CALENDAR -->
+    <div class="cal-block">
+      <div style="font-size:13px;font-weight:500;margin-bottom:2px">Agendar en Google Calendar</div>
+      <div style="font-size:11px;color:#888;margin-bottom:10px">Los tres campos son obligatorios para habilitar el botón</div>
+      <label class="field-label">Nombre <span class="req">*</span></label>
+      <input type="text" id="cal-name" placeholder="Ej: Homero Sánchez" oninput="validateCal()"/>
+      <label class="field-label">Fecha y horario <span class="req">*</span></label>
+      <input type="datetime-local" id="cal-datetime" oninput="validateCal()"/>
+      <label class="field-label">Lugar <span class="req">*</span></label>
+      <input type="text" id="cal-place" placeholder="Ej: La Trattoria, calle 7 y 50, La Plata" oninput="validateCal()"/>
+      <button class="btn-cal" id="btn-cal" onclick="openCalendar()" disabled>Abrir en Google Calendar</button>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-sec" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" onclick="saveTouch()">Guardar toque</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: AGREGAR OPP DESDE HISTORIAL -->
+<div class="overlay" id="opp-overlay">
+  <div class="modal">
+    <h3 id="opp-modal-title">Registrar oportunidad</h3>
+    <label class="field-label">Tipo de oportunidad</label>
+    <select id="o-type" onchange="updateOppPreview()">
+      <option value="PL">PreListing — posible captación</option>
+      <option value="PB">PreBuying — posible compra</option>
+      <option value="REF">Referido — nuevo contacto</option>
+    </select>
+    <label class="field-label">Fecha en que surgió</label>
+    <input type="date" id="o-date"/>
+    <label class="field-label">Propiedad / dirección involucrada</label>
+    <input type="text" id="o-prop" placeholder="Ej: Calle 13 N°456, La Plata"/>
+    <label class="field-label">Estado</label>
+    <select id="o-status">
+      <option value="activo">Activo</option>
+      <option value="negociacion">En negociación</option>
+      <option value="cerrado">Cerrado</option>
+      <option value="caido">Caído</option>
+    </select>
+    <div class="preview-track" style="margin-top:12px">
+      <div class="preview-track-label">Número de trackeo</div>
+      <div class="tracking-num" id="opp-preview-tracking">—</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-sec" onclick="closeOppModal()">Cancelar</button>
+      <button class="btn-primary" onclick="saveOpp()">Guardar oportunidad</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let contacts=[],touches={},tiers={},opps=[],filtered=[],currentPage=1;
+let oppCounters={PL:0,PB:0,REF:0};
+const PER=15;let sortKey='tier',sortDir=1,activeId=null,activeContact=null,oppActiveId=null;
+let oppPage=1;const OPP_PER=15;
+
+const avatarPalette=[
+  {bg:'#EEEDFE',fg:'#3C3489'},{bg:'#E6F1FB',fg:'#0C447C'},
+  {bg:'#E1F5EE',fg:'#085041'},{bg:'#FAEEDA',fg:'#633806'},
+  {bg:'#FBEAF0',fg:'#72243E'},{bg:'#FAECE7',fg:'#712B13'}
+];
+function hashColor(n){let h=0;for(let c of n)h=(h*31+c.charCodeAt(0))%avatarPalette.length;return avatarPalette[Math.abs(h)];}
+function initials(n){return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');}
+function coldStatus(days, tier){
+  // A+: alert after 20d, warning after 10d
+  // A:  alert after 60d, warning after 30d
+  // B:  no urgency (use generic 90d/60d)
+  if(days===null) return 'red';
+  if(tier==='A+'){
+    if(days>20) return 'red';
+    if(days>10) return 'yellow';
+    return 'green';
+  }
+  if(tier==='A'){
+    if(days>60) return 'red';
+    if(days>30) return 'yellow';
+    return 'green';
+  }
+  // B - soft thresholds
+  if(days>90) return 'red';
+  if(days>60) return 'yellow';
+  return 'green';
+}
+function coldLabel(days){if(days===null)return'Sin toques';if(days===0)return'Hoy';if(days===1)return'Ayer';return days+'d atrás';}
+function daysSince(dateStr){if(!dateStr)return null;return Math.floor((new Date()-new Date(dateStr))/86400000);}
+function getLastTouch(id){const t=touches[id];return t&&t.length?t[t.length-1]:null;}
+
+function showTab(id){
+  ['db','trackeo','cartera','compradores','dante','team','balance','opps'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===id?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active',['db','trackeo','cartera','compradores','dante','team','balance','opps'][i]===id);
+  });
+  if(id==='opps') renderOpps();
+  if(id==='trackeo'){
+    try {
+      iniciarTrackeo();
+    } catch(err) {
+      const el = document.getElementById('trackeo-content');
+      if(el) el.innerHTML = '<div style="padding:2rem;color:#A32D2D;font-family:monospace;font-size:13px;background:#FCEBEB;border-radius:8px;margin:1rem"><strong>Error en Trackeo:</strong><br>' + err.message + '<br><br>' + err.stack + '</div>';
+      console.error('iniciarTrackeo error:', err);
+    }
+  }
+  if(id==='cartera'){
+    try { renderCartera(); }
+    catch(e){ document.getElementById('cartera-view').innerHTML='<div style="padding:2rem;color:red">Error: '+e.message+'</div>'; console.error('renderCartera error:',e); }
+  }
+  if(id==='dante') renderDante();
+  if(id==='balance') renderBalance();
+  if(id==='team') renderTeam();
+  if(id==='compradores') renderCompradores();
+}
+
+function parseCSVLine(line){
+  // Proper RFC 4180 CSV parser - handles quoted fields with commas/newlines
+  const fields=[];
+  let i=0, field='', inQuote=false;
+  while(i<line.length){
+    const ch=line[i];
+    if(inQuote){
+      if(ch==='"'){
+        if(line[i+1]==='"'){field+='"';i+=2;}  // escaped quote ""
+        else{inQuote=false;i++;}                // end of quoted field
+      } else {field+=ch;i++;}
+    } else {
+      if(ch==='"'){inQuote=true;i++;}
+      else if(ch===','){fields.push(field);field='';i++;}
+      else{field+=ch;i++;}
+    }
+  }
+  fields.push(field);
+  return fields;
+}
+
+function parseCSV(txt){
+  // Normalize line endings
+  const raw=txt.charCodeAt(0)===0xFEFF?txt.slice(1):txt;
+  const lines=raw.split(/\r?\n/);
+  if(lines.length<2) return [];
+
+  const hdrs=parseCSVLine(lines[0]).map(h=>h.trim());
+  console.log('Headers found:', hdrs.length, hdrs.slice(0,5));
+
+  // Exact match column finder
+  const exactCol=name=>hdrs.findIndex(h=>h===name);
+
+  const firstI  = exactCol('First Name');
+  const lastI   = exactCol('Last Name');
+  const phoneI  = exactCol('Phone 1 - Value');
+  const emailI  = exactCol('E-mail 1 - Value');
+  const bdayI   = exactCol('Birthday');
+  const groupI  = exactCol('Labels');
+
+  console.log('Cols - First:'+firstI+' Last:'+lastI+' Birthday:'+bdayI+' Phone:'+phoneI+' Email:'+emailI);
+
+  const res=[];
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i].trim()) continue;
+    const cols=parseCSVLine(lines[i]);
+    const g=idx=>(idx>=0&&idx<cols.length)?cols[idx].trim():'';
+
+    const first=g(firstI), last=g(lastI);
+    const name=[first,last].filter(Boolean).join(' ');
+    if(!name) continue;
+
+    const bday=g(bdayI);
+    const id='c_'+name.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,30);
+    res.push({id,name,phone:g(phoneI),email:g(emailI),birthday:bday,group:g(groupI)});
+  }
+
+  console.log('Parsed contacts:',res.length,'With birthday:',res.filter(c=>c.birthday).length);
+  if(res.filter(c=>c.birthday).length>0){
+    const sample=res.find(c=>c.birthday);
+    console.log('Birthday sample:',sample.name,'|',sample.birthday,'->',parseBirthday(sample.birthday));
+  }
+  return res;
+}
+
+
+function parseBirthday(str){
+  if(!str||!str.trim())return null;
+  // Handle Google CSV --MM-DD format (no year)
+  if(str.startsWith('--')){
+    const parts=str.slice(2).split('-');
+    if(parts.length===2){const mo=parseInt(parts[0]),da=parseInt(parts[1]);if(mo&&da)return{month:mo,day:da};}
+  }
+  // Handle YYYY-MM-DD
+  const a=str.split('-');
+  if(a.length===3&&a[0].length===4){const mo=parseInt(a[1]),da=parseInt(a[2]);if(mo&&da)return{month:mo,day:da};}
+  // Handle MM/DD or MM/DD/YYYY
+  const b=str.split('/');
+  if(b.length>=2){const mo=parseInt(b[0]),da=parseInt(b[1]);if(mo&&da&&mo<=12&&da<=31)return{month:mo,day:da};}
+  return null;
+}
+
+function daysUntilBirthday(bd){
+  if(!bd)return null;
+  const now=new Date(),t=new Date(now.getFullYear(),bd.month-1,bd.day);
+  if(t<now)t.setFullYear(now.getFullYear()+1);
+  return Math.ceil((t-now)/86400000);
+}
+
+
+function handleDrop(e){
+  const file=e.dataTransfer.files[0];
+  if(!file){alert('No se detectó ningún archivo.');return;}
+  if(!file.name.endsWith('.csv')){alert('Por favor arrastrá un archivo .csv');return;}
+  processFile(file);
+}
+
+function handleFile(e){
+  const file=e.target.files[0];if(!file)return;
+  processFile(file);
+}
+
+function processFile(file){
+  const doLoad = (text) => {
+    try{
+      // Strip BOM if present
+      const clean = text.charCodeAt(0)===0xFEFF ? text.slice(1) : text;
+      // Columns detected and mapped correctly
+      const newContacts=parseCSV(clean);
+      // Match tiers and touches by name (case-insensitive) so they survive across sessions
+      const tierByName={}, touchByName={};
+      contacts.forEach(c=>{
+        const n=c.name.toLowerCase().trim();
+        if(tiers[c.id]) tierByName[n]=tiers[c.id];
+        if(touches[c.id]&&touches[c.id].length) touchByName[n]=touches[c.id];
+      });
+      // Also index current tiers by name
+      Object.keys(tiers).forEach(id=>{
+        const c=contacts.find(x=>x.id===id);
+        if(c) tierByName[c.name.toLowerCase().trim()]=tiers[id];
+      });
+      // Apply saved data to new contacts
+      newContacts.forEach(c=>{
+        const n=c.name.toLowerCase().trim();
+        tiers[c.id]=tierByName[n]||tiers[c.id]||'B';
+        touches[c.id]=touchByName[n]||touches[c.id]||[];
+      });
+      contacts=newContacts;
+
+      const sub=document.getElementById('subtitle-main');
+      const hdr=document.getElementById('header-sub');
+      if(sub)sub.textContent=contacts.length+' contactos cargados · '+file.name;
+      if(hdr)hdr.textContent=file.name;
+      const dz=document.getElementById('drop-zone');
+      if(dz)dz.style.display='none';
+      try{updateStats();}catch(e2){console.error('updateStats:',e2);}
+      try{applyFilters();}catch(e3){console.error('applyFilters:',e3);}
+      try{checkBirthdays();}catch(e4){console.error('checkBirthdays:',e4);}
+      if(contacts.length===0){
+        alert('Se leyó el archivo pero no se encontraron contactos.\nPrimeras líneas:\n'+clean.split('\n').slice(0,3).join('\n'));
+      }
+    }catch(err){
+      alert('Error procesando CSV: '+err.message);
+    }
+  };
+  // Try UTF-8 first, then Latin-1 as fallback
+  const r1=new FileReader();
+  r1.onerror=()=>alert('Error leyendo archivo: '+r1.error);
+  r1.onload=ev=>{
+    try{
+      const text=ev.target.result;
+      if(text.includes('�')){
+        const r2=new FileReader();
+        r2.onerror=()=>alert('Error latin1: '+r2.error);
+        r2.onload=ev2=>{ try{doLoad(ev2.target.result);}catch(e){alert('Error doLoad latin1: '+e.message+' linea aprox: '+e.stack);} };
+        r2.readAsText(file,'latin1');
+      } else {
+        doLoad(text);
+      }
+    }catch(e){
+      alert('Error en onload: '+e.message+'\n'+e.stack);
+    }
+  };
+  r1.readAsText(file,'UTF-8');
+}
+
+function thisWeekMeetings(){
+  const now=new Date(),monday=new Date(now);
+  monday.setDate(now.getDate()-now.getDay()+1);monday.setHours(0,0,0,0);
+  let m=0;
+  for(const id in touches)for(const t of touches[id])if(new Date(t.date)>=monday&&t.type==='reunion')m++;
+  return m;
+}
+
+function updateStats(){
+  const total=contacts.length;
+  document.getElementById('st-total').textContent=total||'—';
+  let r=0;
+  const apluses=contacts.filter(c=>tiers[c.id]==='A+');
+  const as_=contacts.filter(c=>tiers[c.id]==='A');
+  const aplusCount=apluses.length, aCount=as_.length;
+  const total_aa=aplusCount+aCount;
+  const pctAplus=total_aa>0?Math.round(aplusCount/total_aa*100):0;
+  // Contacts overdue by tier
+  contacts.forEach(c=>{const s=coldStatus(daysSince(getLastTouch(c.id)?.date),tiers[c.id]||'B');if(s==='red')r++;});
+  document.getElementById('st-aplus').textContent=total?aplusCount:'—';
+  document.getElementById('st-aplus-sub').textContent=aplusCount?'contactar cada 20 días':'corazón del negocio';
+  document.getElementById('st-a').textContent=total?aCount:'—';
+  document.getElementById('st-a-sub').textContent=aCount?'contactar cada 60 días':'aspirantes a A+';
+  document.getElementById('st-pct-aplus').textContent=total_aa?pctAplus+'%':'—';
+  document.getElementById('st-red').textContent=total?r:'—';
+  const meetings=thisWeekMeetings();
+  document.getElementById('st-meetings').textContent=meetings;
+  const pct=Math.min(100,Math.round(meetings/10*100));
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=pct+'% de meta semanal'+(meetings>=10?' ✓':'');
+  // Safe update of optional elements
+  const oppEl=document.getElementById('st-opps');
+  if(oppEl) oppEl.textContent=opps.length;
+  const gEl=document.getElementById('st-green');
+  if(gEl) gEl.textContent=contacts.filter(c=>coldStatus(daysSince(getLastTouch(c.id)?.date),tiers[c.id]||'B')==='green').length;
+  const yEl=document.getElementById('st-yellow');
+  if(yEl) yEl.textContent=contacts.filter(c=>coldStatus(daysSince(getLastTouch(c.id)?.date),tiers[c.id]||'B')==='yellow').length;
+}
+
+function checkBirthdays(){
+  const container=document.getElementById('birthday-alerts');
+  const alerts=contacts.map(c=>{const bd=parseBirthday(c.birthday);const days=daysUntilBirthday(bd);return days!==null&&days<=30?{name:c.name,days,bd}:null;}).filter(Boolean).sort((a,b)=>a.days-b.days);
+  if(!alerts.length){container.style.display='none';return;}
+  container.style.display='block';
+  container.innerHTML=alerts.slice(0,3).map(a=>{
+    const cls=a.days<=7?'alert-urgent':'alert-soon';
+    const label=a.days===0?'Hoy es su cumpleaños':a.days===1?'Mañana':'En '+a.days+' días';
+    const pad=n=>String(n).padStart(2,'0');
+    const now=new Date();
+    const year=a.bd.month>now.getMonth()+1||(a.bd.month===now.getMonth()+1&&a.bd.day>=now.getDate())?now.getFullYear():now.getFullYear()+1;
+    const start=`${year}${pad(a.bd.month)}${pad(a.bd.day)}`;
+    const nd=new Date(year,a.bd.month-1,a.bd.day+1);
+    const end=`${nd.getFullYear()}${pad(nd.getMonth()+1)}${pad(nd.getDate())}`;
+    const url=`https://calendar.google.com/calendar/r/eventedit?text=Cumpleaños+de+${encodeURIComponent(a.name)}&dates=${start}/${end}&recur=RRULE:FREQ%3DYEARLY`;
+    return `<div class="alert-card ${cls}"><span class="dot ${a.days<=7?'dot-red':'dot-yellow'}"></span><div style="flex:1"><strong>${a.name}</strong> — ${label}</div><a href="${url}" class="cal-link" target="_blank">+ Google Calendar</a></div>`;
+  }).join('');
+}
+
+function applyFilters(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const tier=document.getElementById('filter-tier').value;
+  const coldF=document.getElementById('filter-cold').value;
+  filtered=contacts.filter(c=>{
+    const ds=daysSince(getLastTouch(c.id)?.date);
+    const s=coldStatus(ds,tiers[c.id]||'B');
+    return(!q||c.name.toLowerCase().includes(q)||c.email.toLowerCase().includes(q)||c.phone.includes(q))
+      &&(!tier||tiers[c.id]===tier)&&(!coldF||s===coldF);
+  });
+  const tierOrder={'A+':0,'A':1,'B':2};
+  filtered.sort((a,b)=>{
+    // Always secondary sort by tier
+    const tierDiff=(tierOrder[tiers[a.id]]??3)-(tierOrder[tiers[b.id]]??3);
+    if(sortKey==='tier') return tierDiff*sortDir;
+    if(sortKey==='cold'){const da=daysSince(getLastTouch(a.id)?.date)??9999;const db2=daysSince(getLastTouch(b.id)?.date)??9999;const d=db2-da;return d!==0?d*sortDir:tierDiff;}
+    if(sortKey==='lastTouch'){const av=getLastTouch(a.id)?.date||'';const bv=getLastTouch(b.id)?.date||'';const d=av<bv?sortDir:av>bv?-sortDir:0;return d!==0?d:tierDiff;}
+    if(sortKey==='birthday'){const av=daysUntilBirthday(parseBirthday(a.birthday))??999;const bv=daysUntilBirthday(parseBirthday(b.birthday))??999;const d=(av-bv)*sortDir;return d!==0?d:tierDiff;}
+    const av=(a[sortKey]||'').toLowerCase(),bv=(b[sortKey]||'').toLowerCase();
+    const d=av<bv?-sortDir:av>bv?sortDir:0;
+    return d!==0?d:tierDiff;
+  });
+  currentPage=1;
+  const fs=document.getElementById('filter-summary');
+  fs.textContent=filtered.length!==contacts.length?filtered.length+' de '+contacts.length+' contactos':'';
+  renderTable();
+}
+function sortBy(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}applyFilters();}
+
+function contactOpps(id){return opps.filter(o=>o.contactId===id);}
+
+function renderTable(){
+  const start=(currentPage-1)*PER,slice=filtered.slice(start,start+PER);
+  const tbody=document.getElementById('tbody');
+  if(!contacts.length){
+    tbody.innerHTML='<tr><td colspan="8" style="padding:3rem;text-align:center;color:#aaa">Importá tu CSV de Google Contacts para comenzar</td></tr>';
+
+    const dz2=document.getElementById('drop-zone');if(dz2)dz2.style.display='block';    document.getElementById('pag-info').textContent='—';
+    document.getElementById('btn-prev').disabled=true;document.getElementById('btn-next').disabled=true;return;
+  }
+  if(!slice.length){tbody.innerHTML='<tr><td colspan="8" style="padding:2rem;text-align:center;color:#aaa">Sin resultados</td></tr>';return;}
+  tbody.innerHTML=slice.map(c=>{
+    const col=hashColor(c.name);
+    const lt=getLastTouch(c.id);
+    const ds=daysSince(lt?.date);
+    const tier=tiers[c.id]||'B';
+    const status=coldStatus(ds,tier);
+    const dotCls={'green':'dot-green','yellow':'dot-yellow','red':'dot-red'}[status];
+    const txtCls={'green':'cold-green','yellow':'cold-yellow','red':'cold-red'}[status];
+    const typeTag=lt?`<span class="tag tag-${lt.type}">${lt.type}</span>`:'<span style="color:#ccc;font-size:12px">—</span>';
+    const bd=parseBirthday(c.birthday);const bdDays=daysUntilBirthday(bd);
+    const bdLabel=bd===null?'—':(()=>{
+      const pad=n=>String(n).padStart(2,'0');
+      const base=pad(bd.day)+'/'+pad(bd.month);
+      if(bdDays===0) return base+' 🎂';
+      if(bdDays!==null&&bdDays<=7) return base+' ⚑';
+      return base;
+    })();
+    const bdColor=bdDays!==null&&bdDays<=7?'#993556':'#aaa';
+    const lastDateLabel=lt?lt.date.slice(5).replace('-','/'):'—';
+    const cOpps=contactOpps(c.id);
+    const oppBadge=cOpps.length?`<span class="badge badge-aplus" style="font-size:10px;cursor:pointer" onclick="abrirModalOpps('${c.id}')" title="Ver oportunidades">${cOpps.length}</span>`:'<span style="color:#ccc;font-size:12px">—</span>';
+    // Visual urgency for overdue A+ and A contacts
+    const isUrgent = (tier==='A+' && status==='red') || (tier==='A' && status==='red');
+    const isWarning = (tier==='A+' && status==='yellow') || (tier==='A' && status==='yellow');
+    const rowStyle = isUrgent
+      ? 'background:#FFF0F0;border-left:3px solid #E53E3E;'
+      : isWarning
+      ? 'background:#FFFBEB;border-left:3px solid #D97706;'
+      : tier==='A+' && status==='green'
+      ? 'border-left:3px solid #3C3489;'
+      : '';
+    const urgentBadge = isUrgent && tier==='A+'
+      ? '<span style="font-size:10px;background:#E53E3E;color:#fff;padding:1px 6px;border-radius:10px;margin-left:6px;font-weight:500">¡Contactar ya!</span>'
+      : isUrgent && tier==='A'
+      ? '<span style="font-size:10px;background:#D97706;color:#fff;padding:1px 6px;border-radius:10px;margin-left:6px">Contactar</span>'
+      : '';
+    return `<tr style="${rowStyle}">
+      <td><div class="name-cell"><div class="avatar" style="background:${col.bg};color:${col.fg}">${initials(c.name)}</div><span>${c.name}</span>${urgentBadge}</div></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;${tier==='A+'?'background:#EEEDFE;color:#3C3489':tier==='A'?'background:#E6F1FB;color:#0C447C':'background:#f0efe9;color:#555'}">${tier}</span>
+          <select class="tier-sel" onchange="setTier('${c.id}',this.value)" style="font-size:11px;width:42px;padding:1px 2px;border:1px solid #e0dfd8;border-radius:6px;background:#fff;cursor:pointer">
+            <option ${tier==='A+'?'selected':''}>A+</option>
+            <option ${tier==='A'?'selected':''}>A</option>
+            <option ${tier==='B'?'selected':''}>B</option>
+          </select>
+        </div>
+      </td>
+      <td><div class="cold-cell"><span class="dot ${dotCls}"></span><span class="${txtCls}">${coldLabel(ds)}</span></div></td>
+      <td style="font-size:12px;color:#aaa">${lastDateLabel}</td>
+      <td>${typeTag}</td>
+      <td>${oppBadge}</td>
+      <td style="color:${bdColor};font-size:12px">${bdLabel}</td>
+      <td style="white-space:nowrap">
+        <button onclick="openModal('${c.id}')" class="btn-sec" style="font-size:11px;padding:4px 9px;margin-right:4px">+ Toque</button>
+        <button onclick="openOppModal('${c.id}')" class="btn-opp" style="font-size:11px;padding:4px 9px">+ Oport.</button>
+      </td>
+    </tr>`;
+  }).join('');
+  const total=filtered.length;
+  document.getElementById('pag-info').textContent=`${Math.min(start+1,total)}–${Math.min(start+PER,total)} de ${total}`;
+  document.getElementById('btn-prev').disabled=currentPage<=1;
+  document.getElementById('btn-next').disabled=currentPage>=Math.ceil(total/PER);
+}
+
+function setTier(id,val){tiers[id]=val;updateStats();}
+
+
+function previewTracking(type){
+  const next=(oppCounters[type]||0)+1;
+  return `${type}-${new Date().getFullYear()}-${String(next).padStart(3,'0')}`;
+}
+
+function toggleOppFields(){
+  const type=document.getElementById('m-opp-type').value;
+  document.getElementById('opp-fields').style.display=type?'block':'none';
+  if(type)document.getElementById('preview-tracking').textContent=previewTracking(type);
+}
+function updateOppPreview(){
+  const type=document.getElementById('o-type').value;
+  document.getElementById('opp-preview-tracking').textContent=previewTracking(type);
+}
+
+function openModal(id){
+  activeId=id;activeContact=contacts.find(x=>x.id===id);
+  document.getElementById('modal-title').textContent='Registrar toque — '+activeContact.name;
+  document.getElementById('m-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('m-note').value='';
+  document.getElementById('m-type').value='reunion';
+  document.getElementById('m-opp-type').value='';
+  document.getElementById('opp-fields').style.display='none';
+  document.getElementById('cal-name').value=activeContact.name;
+  document.getElementById('cal-datetime').value='';
+  document.getElementById('cal-place').value='';
+  document.getElementById('btn-cal').disabled=true;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function abrirModalOpps(contactId){
+  const cOpps = contactOpps(contactId);
+  const c = contacts.find(x=>x.id===contactId);
+  
+  let modal = document.getElementById('modal-opps-detail');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'modal-opps-detail';
+    modal.className = 'overlay';
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+    document.body.appendChild(modal);
+  }
+
+  const renderOppsModal = () => {
+    const currentOpps = contactOpps(contactId);
+    modal.innerHTML = `<div class="modal" style="max-width:440px">
+      <h3 style="margin-bottom:4px">Oportunidades — ${c?.name||contactId}</h3>
+      <div style="font-size:12px;color:#888;margin-bottom:1rem">${currentOpps.length} oportunidad${currentOpps.length!==1?'es':''} registrada${currentOpps.length!==1?'s':''}</div>
+      ${currentOpps.length===0
+        ? '<div style="color:#aaa;text-align:center;padding:1.5rem">Sin oportunidades</div>'
+        : currentOpps.map((o,i)=>{
+            const globalIdx = opps.findIndex(x=>x.trackingNum===o.trackingNum);
+            const typeColor = o.type==='PL'?'#534AB7':o.type==='PB'?'#085041':'#854F0B';
+            const typeBg = o.type==='PL'?'#EEEDFE':o.type==='PB'?'#E1F5EE':'#FAEEDA';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#f8f7f4;border-radius:8px;margin-bottom:6px;gap:8px">
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                  <span style="font-size:11px;font-weight:700;background:${typeBg};color:${typeColor};padding:2px 8px;border-radius:10px">${o.type}</span>
+                  <span style="font-size:12px;font-weight:500;color:#555">${o.trackingNum}</span>
+                </div>
+                <div style="font-size:11px;color:#888">${o.property||'Sin dirección'}</div>
+                <div style="font-size:11px;color:#aaa;margin-top:2px">📅 ${o.date||'—'} · ${o.status||'—'}</div>
+              </div>
+              <button onclick="eliminarOpp(${globalIdx}, '${contactId}')" 
+                style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;flex-shrink:0">
+                Eliminar
+              </button>
+            </div>`;
+          }).join('')
+      }
+      <div style="text-align:right;margin-top:1rem">
+        <button class="btn-sec" onclick="document.getElementById('modal-opps-detail').classList.remove('open')">Cerrar</button>
+      </div>
+    </div>`;
+    modal.classList.add('open');
+  };
+
+  renderOppsModal();
+  modal._render = renderOppsModal;
+  modal._contactId = contactId;
+}
+
+function eliminarOpp(globalIdx, contactId){
+  if(!confirm('¿Eliminar esta oportunidad?')) return;
+  opps.splice(globalIdx, 1);
+  // Re-render modal
+  const modal = document.getElementById('modal-opps-detail');
+  if(modal && modal._render) modal._render();
+  // Refresh table
+  applyFilters();
+}
+
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');activeId=null;activeContact=null;}
+
+function openOppModal(id){
+  oppActiveId=id;
+  const c=contacts.find(x=>x.id===id);
+  document.getElementById('opp-modal-title').textContent='Registrar oportunidad — '+c.name;
+  document.getElementById('o-type').value='PL';
+  document.getElementById('o-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('o-prop').value='';
+  document.getElementById('o-status').value='activo';
+  document.getElementById('opp-preview-tracking').textContent=previewTracking('PL');
+  document.getElementById('opp-overlay').classList.add('open');
+}
+function closeOppModal(){document.getElementById('opp-overlay').classList.remove('open');oppActiveId=null;}
+
+function validateCal(){
+  const name=document.getElementById('cal-name').value.trim();
+  const dt=document.getElementById('cal-datetime').value;
+  const place=document.getElementById('cal-place').value.trim();
+  const ok=name&&dt&&place;
+  document.getElementById('btn-cal').disabled=!ok;
+  return{name,dt,place,ok};
+}
+
+function openCalendar(){
+  const{name,dt,place,ok}=validateCal();if(!ok)return;
+  const type=document.getElementById('m-type').value;
+  const note=document.getElementById('m-note').value;
+  const start=new Date(dt),end=new Date(start.getTime()+3600000);
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const url=`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent('Reunión con '+name)}&dates=${fmt(start)}/${fmt(end)}&details=${encodeURIComponent((note?note+'\n\n':'')+'Tipo: '+type)}&location=${encodeURIComponent(place)}`;
+  window.open(url,'_blank');
+}
+
+function saveTouch(){
+  if(!activeId)return;
+  const type=document.getElementById('m-type').value;
+  const date=document.getElementById('m-date').value;
+  const note=document.getElementById('m-note').value;
+  if(!date)return;
+  if(!touches[activeId])touches[activeId]=[];
+  touches[activeId].push({type,date,note});
+
+  const oppType=document.getElementById('m-opp-type').value;
+  if(oppType){
+    const oppDate=document.getElementById('m-opp-date').value||date;
+    const oppProp=document.getElementById('m-opp-prop').value;
+    const oppStatus=document.getElementById('m-opp-status').value;
+    const trackingNum=generateTrackingNum(oppType);
+    const opp={trackingNum,type:oppType,contactId:activeId,contactName:activeContact.name,property:oppProp,date:oppDate,status:oppStatus,touchType:type,touchDate:date};
+    opps.push(opp);
+
+    // ── Sync PL → Cartera PreListings ──
+    if(oppType==='PL' && typeof carteraPLs!=='undefined'){
+      if(!carteraPLs.find(pl=>pl.trackingNum===trackingNum)){
+        carteraPLs.push({trackingNum,contactName:activeContact.name,direccion:oppProp||'',tipo:'',estado:'Pendiente',fecha:oppDate,nota:'',auto:false});
+      }
+    }
+
+    // ── Sync PL/PB → Trackeo Semanal (trkData) ──
+    if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+      const parts=oppDate.split('-').map(Number);
+      const d=new Date(parts[0],parts[1]-1,parts[2]); // local time, no timezone shift
+      const week=WEEKS.find(w=>d>=w.start&&d<=w.end);
+      console.log('Trackeo sync - oppDate:', oppDate, 'parsed d:', d.toISOString(), 'week found:', week?.num);
+      if(week){
+        // Ensure trkData structure exists for this week
+        if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+        if(!trkData[week.num].cart) trkData[week.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
+        if(!trkData[week.num].comp) trkData[week.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
+        if(oppType==='PL'){
+          if(!trkData[week.num].cart.PL) trkData[week.num].cart.PL=[];
+          trkData[week.num].cart.PL.push({n:activeContact.name,note:trackingNum+' '+oppProp,auto:false});
+        }
+        if(oppType==='PB'){
+          console.log('PB sync - week:', week?.num, 'date:', oppDate, 'trkData week exists:', !!trkData[week?.num], 'comp exists:', !!(trkData[week?.num]?.comp));
+          if(!trkData[week.num].comp) trkData[week.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
+          if(!trkData[week.num].comp.PB) trkData[week.num].comp.PB=[];
+          trkData[week.num].comp.PB.push({n:activeContact.name,note:trackingNum,auto:false});
+          console.log('PB pushed! Total PB in week', week.num, ':', trkData[week.num].comp.PB.length);
+        }
+        if(oppType==='REF'){
+          if(!trkData[week.num].cart.Referidos) trkData[week.num].cart.Referidos=[];
+          trkData[week.num].cart.Referidos.push({n:activeContact.name,note:trackingNum,auto:false});
+        }
+      }
+    }
+  }
+
+  // ── Sync prospección → Trackeo Semanal ──
+  const prospTypes=['cafe','almuerzo','popby','llamadoverde'];
+  const prospMap={'cafe':'Reuniones','almuerzo':'Reuniones','popby':'Reuniones','llamadoverde':'Reuniones'};
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && prospTypes.includes(type)){
+    const parts2=date.split('-').map(Number);
+    const d=new Date(parts2[0],parts2[1]-1,parts2[2]);
+    const week=WEEKS.find(w=>d>=w.start&&d<=w.end);
+    if(week){
+      const trkField=prospMap[type]||'Reuniones';
+      if(!trkData[week.num].prosp[trkField]) trkData[week.num].prosp[trkField]=[];
+      trkData[week.num].prosp[trkField].push({n:activeContact.name,note:type,auto:false});
+    }
+  }
+
+  closeModal();updateStats();applyFilters();checkBirthdays();
+}
+
+function saveOpp(){
+  if(!oppActiveId)return;
+  const type=document.getElementById('o-type').value;
+  const date=document.getElementById('o-date').value||new Date().toISOString().split('T')[0];
+  const prop=document.getElementById('o-prop').value;
+  const status=document.getElementById('o-status').value;
+  const c=contacts.find(x=>x.id===oppActiveId);
+  const trackingNum=generateTrackingNum(type);
+  opps.push({trackingNum,type,contactId:oppActiveId,contactName:c.name,property:prop,date,status,touchType:'—',touchDate:'—'});
+
+  // ── Sync → Cartera PreListings ──
+  if(type==='PL' && typeof carteraPLs!=='undefined'){
+    if(!carteraPLs.find(pl=>pl.trackingNum===trackingNum)){
+      carteraPLs.push({trackingNum,contactName:c.name,direccion:prop||'',tipo:'',estado:'Pendiente',fecha:date,nota:'',auto:false});
+    }
+  }
+
+  // ── Sync → Trackeo Semanal ──
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+    const parts=date.split('-').map(Number);
+    const d=new Date(parts[0],parts[1]-1,parts[2]);
+    const week=WEEKS.find(w=>d>=w.start&&d<=w.end);
+    if(week){
+      if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[week.num].cart) trkData[week.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
+      if(!trkData[week.num].comp) trkData[week.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
+      if(type==='PL'){
+        if(!trkData[week.num].cart.PL) trkData[week.num].cart.PL=[];
+        trkData[week.num].cart.PL.push({n:c.name,note:trackingNum+(prop?' · '+prop:''),auto:false});
+      }
+      if(type==='PB'){
+        if(!trkData[week.num].comp.PB) trkData[week.num].comp.PB=[];
+        trkData[week.num].comp.PB.push({n:c.name,note:trackingNum,auto:false});
+      }
+      if(type==='REF'){
+        if(!trkData[week.num].cart.Referidos) trkData[week.num].cart.Referidos=[];
+        trkData[week.num].cart.Referidos.push({n:c.name,note:trackingNum,auto:false});
+      }
+    }
+  }
+
+  closeOppModal();updateStats();renderTable();
+}
+
+function renderOpps(){
+  const typeF=document.getElementById('opp-filter-type').value;
+  const statusF=document.getElementById('opp-filter-status').value;
+  let filtered2=opps.filter(o=>(!typeF||o.type===typeF)&&(!statusF||o.status===statusF));
+  document.getElementById('opp-st-total').textContent=opps.length;
+  document.getElementById('opp-st-pl').textContent=opps.filter(o=>o.type==='PL').length;
+  document.getElementById('opp-st-pb').textContent=opps.filter(o=>o.type==='PB').length;
+  document.getElementById('opp-st-ref').textContent=opps.filter(o=>o.type==='REF').length;
+  document.getElementById('opp-st-activos').textContent=opps.filter(o=>o.status==='activo').length;
+  const start=(oppPage-1)*OPP_PER,slice=filtered2.slice(start,start+OPP_PER);
+  const tbody=document.getElementById('opps-tbody');
+  if(!filtered2.length){
+    tbody.innerHTML='<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin oportunidades registradas aún. Registrá un toque con resultado desde la Data Base.</td></tr>';
+    document.getElementById('opp-pag-info').textContent='—';
+    document.getElementById('opp-btn-prev').disabled=true;document.getElementById('opp-btn-next').disabled=true;return;
+  }
+  const typeLabel={'PL':'PreListing','PB':'PreBuying','REF':'Referido'};
+  const typeCls={'PL':'opp-pl','PB':'opp-pb','REF':'opp-ref'};
+  tbody.innerHTML=slice.map(o=>{
+    const statusCls='status-'+o.status;
+    const statusLabel={'activo':'Activo','negociacion':'En negociación','cerrado':'Cerrado','caido':'Caído'}[o.status]||o.status;
+    return `<tr>
+      <td><span class="tracking-num">${o.trackingNum}</span></td>
+      <td><span class="tag ${typeCls[o.type]}">${typeLabel[o.type]}</span></td>
+      <td>${o.contactName}</td>
+      <td style="font-size:12px;color:#888">${o.property||'—'}</td>
+      <td style="font-size:12px;color:#888">${o.date?o.date.slice(5).replace('-','/'):'-'}</td>
+      <td>
+        <select onchange="updateOppStatus('${o.trackingNum}',this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+          <option value="activo" ${o.status==='activo'?'selected':''}>Activo</option>
+          <option value="negociacion" ${o.status==='negociacion'?'selected':''}>En negociación</option>
+          <option value="cerrado" ${o.status==='cerrado'?'selected':''}>Cerrado</option>
+          <option value="caido" ${o.status==='caido'?'selected':''}>Caído</option>
+        </select>
+      </td>
+      <td style="font-size:12px;color:#aaa">${o.touchType!=='—'?`<span class="tag tag-${o.touchType}">${o.touchType}</span>`:'-'}</td>
+    </tr>`;
+  }).join('');
+  const total=filtered2.length;
+  document.getElementById('opp-pag-info').textContent=`${Math.min(start+1,total)}–${Math.min(start+OPP_PER,total)} de ${total}`;
+  document.getElementById('opp-btn-prev').disabled=oppPage<=1;
+  document.getElementById('opp-btn-next').disabled=oppPage>=Math.ceil(total/OPP_PER);
+}
+
+function updateOppStatus(trackingNum,newStatus){
+  const opp=opps.find(o=>o.trackingNum===trackingNum);
+  if(opp)opp.status=newStatus;
+  updateStats();
+}
+
+function changeOppPage(dir){oppPage+=dir;renderOpps();}
+function changePage(dir){currentPage+=dir;renderTable();}
+
+function clearAll(){
+  contacts=[];touches={};tiers={};opps=[];filtered=[];oppCounters={PL:0,PB:0,REF:0};
+  document.getElementById('subtitle-main').textContent='Importá tu CSV de Google Contacts para comenzar';
+  document.getElementById('header-sub').textContent='—';
+  document.getElementById('csv-in').value='';
+  ['st-total','st-green','st-yellow','st-red','st-opps'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('st-meetings').textContent='0';
+  document.getElementById('prog-bar').style.width='0%';
+  document.getElementById('birthday-alerts').style.display='none';
+  applyFilters();
+}
+
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('opp-overlay').addEventListener('click',function(e){if(e.target===this)closeOppModal();});
+
+
+// ══════════════════════════════════════════════════
+//  CARTERA — propiedades activas + pipeline de PLs
+// ══════════════════════════════════════════════════
+let carteraProps = [];
+let carteraPLs   = [];
+let propiedadesVendidas = [];
+const PROP_TIPOS = ['Departamento','Casa','PH','Local comercial','Oficina','Terreno'];
+const PL_ESTADOS = ['Pendiente','Captada','Postergada','Perdida'];
+window.carteraFiltroEleva = 'total';
+
+function daysSinceDate(d){ if(!d) return null; return Math.floor((new Date()-new Date(d))/86400000); }
+function formatUSD(n){ if(!n&&n!==0) return '—'; return '$'+Number(n).toLocaleString('es-AR'); }
+function priceDiffPct(pub,tas){ if(!pub||!tas) return null; return ((pub-tas)/tas*100).toFixed(1); }
+function setCarteraFiltro(f){ window.carteraFiltroEleva=f; renderCartera(); }
+
+function renderCartera(){
+  const el = document.getElementById('cartera-view');
+  if(!el) return;
+
+  // Sync PLs from opps
+  if(typeof opps !== 'undefined') {
+    opps.forEach(o=>{
+      if(o.type!=='PL') return;
+      if(!carteraPLs.find(pl=>pl.trackingNum===o.trackingNum)){
+        carteraPLs.push({trackingNum:o.trackingNum,contactName:o.contactName,direccion:o.property||'',tipo:'',estado:'Pendiente',fecha:o.date,nota:'',auto:true});
+      }
+    });
+  }
+
+  const filtro = window.carteraFiltroEleva;
+  const activas = carteraProps.filter(p=>p.estado==='activa');
+  const filtradas = activas.filter(p=> filtro==='sin'?!p.esEleva : filtro==='solo'?p.esEleva : true);
+  const elevaCount = activas.filter(p=>p.esEleva).length;
+  const propiaCount = activas.filter(p=>!p.esEleva).length;
+  const avgPrice = filtradas.length ? Math.round(filtradas.reduce((s,p)=>s+(Number(p.precio)||0),0)/filtradas.length) : 0;
+  const avgDias  = filtradas.length ? Math.round(filtradas.reduce((s,p)=>s+(daysSinceDate(p.fechaPublicacion)||0),0)/filtradas.length) : 0;
+  const sinVis30 = filtradas.filter(p=>(daysSinceDate(p.ultimaVisita)||999)>30).length;
+  const sinBP30  = filtradas.filter(p=>(daysSinceDate(p.ultimaBP)||999)>30).length;
+  const pendPLs  = carteraPLs.filter(p=>p.estado==='Pendiente').length;
+  const filtroLabel = {total:'Total (con Eleva)',sin:'Sin Eleva',solo:'Solo Eleva'};
+
+  let h = '';
+
+  // Header
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">';
+  h += '<div><div style="font-size:18px;font-weight:500">Cartera</div><div style="font-size:13px;color:#888;margin-top:2px">Propiedades activas y pipeline de captaciones</div></div>';
+  h += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:#888">Ver:</span>';
+  ['total','sin','solo'].forEach(f=>{
+    const on=filtro===f;
+    h+=`<button onclick="setCarteraFiltro('${f}')" style="font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid ${on?'#185FA5':'#e0dfd8'};background:${on?'#185FA5':'#fff'};color:${on?'#fff':'#888'};cursor:pointer">${filtroLabel[f]}</button>`;
+  });
+  h+=`<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:#EEEDFE;color:#3C3489">Eleva: ${elevaCount}</span>`;
+  h+=`<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:#E6F1FB;color:#0C447C">Propia: ${propiaCount}</span>`;
+  h+='</div></div>';
+
+  // KPIs
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">';
+  h+=`<div class="stat-card"><div class="stat-label">${filtroLabel[filtro]}</div><div class="stat-val" style="color:#185FA5">${filtradas.length}</div><div class="stat-sub">de ${activas.length} totales</div></div>`;
+  h+=`<div class="stat-card"><div class="stat-label">Precio promedio</div><div class="stat-val" style="font-size:16px">${avgPrice?formatUSD(avgPrice):'—'}</div></div>`;
+  h+=`<div class="stat-card"><div class="stat-label">Días publi. prom.</div><div class="stat-val" style="color:${avgDias>60?'#A32D2D':avgDias>30?'#854F0B':'#3B6D11'}">${filtradas.length?avgDias+'d':'—'}</div></div>`;
+  h+=`<div class="stat-card"><div class="stat-label">Sin visitas +30d</div><div class="stat-val" style="color:${sinVis30>0?'#A32D2D':'#3B6D11'}">${activas.length?sinVis30:'—'}</div></div>`;
+  h+=`<div class="stat-card"><div class="stat-label">Sin BP +30d</div><div class="stat-val" style="color:${sinBP30>0?'#A32D2D':'#3B6D11'}">${activas.length?sinBP30:'—'}</div></div>`;
+  h+=`<div class="stat-card"><div class="stat-label">PL pendientes</div><div class="stat-val" style="color:#534AB7">${pendPLs}</div></div>`;
+  h+=`<div class="stat-card"><div class="stat-label">Vendidas (histórico)</div><div class="stat-val" style="color:#3B6D11">${propiedadesVendidas.length}</div></div>`;
+  h+=`<div class="stat-card" style="border-left:3px solid #3B6D11"><div class="stat-label">Comisión potencial (4%)</div><div class="stat-val" style="color:#3B6D11;font-size:18px">${formatUSD(Math.round(filtradas.reduce((s,p)=>s+(Number(p.precio)||0),0)*0.04))}</div><div class="stat-sub">si se vende toda la cartera</div></div>`;
+  h+='</div>';
+
+  // ── Tabla cartera activa ──
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h+=`<div style="font-size:15px;font-weight:500">Cartera activa <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${filtradas.length} propiedades exclusivas</span></div>`;
+  h+='<button class="btn-primary" style="font-size:12px;padding:6px 14px" onclick="abrirModalProp(null)">+ Agregar propiedad</button></div>';
+  h+='<div class="table-wrap" style="margin-bottom:1.5rem"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:1050px">';
+  h+='<thead><tr><th>Dirección</th><th>Tipo</th><th>Estado</th><th>Dueño</th><th>Precio pub.</th><th>Tasación</th><th>Var.%</th><th>Días pub.</th><th>Visitas</th><th>Sin visita</th><th>Sin BP</th><th>Acciones</th></tr></thead><tbody>';
+
+  if(!filtradas.length){
+    h+='<tr><td colspan="11" style="padding:3rem;text-align:center;color:#aaa">Aún no hay propiedades. Hacé clic en "+ Agregar propiedad".</td></tr>';
+  } else {
+    filtradas.forEach(p=>{
+      const idx=carteraProps.indexOf(p);
+      const dp=daysSinceDate(p.fechaPublicacion), dv=daysSinceDate(p.ultimaVisita), db=daysSinceDate(p.ultimaBP);
+      const diff=priceDiffPct(Number(p.precio),Number(p.tasacion));
+      const diffHtml=diff===null?'—':(Number(diff)>0?`<span style="color:#A32D2D;font-weight:500">+${diff}%</span>`:`<span style="color:#3B6D11;font-weight:500">${diff}%</span>`);
+      const elBadge=p.esEleva?'<span style="font-size:10px;margin-left:4px;padding:1px 5px;border-radius:10px;background:#EEEDFE;color:#3C3489">Eleva</span>':'';
+      const estBg=(p.estadoCartera||'Captada')==='Captada'?'#E6F1FB':'#EAF3DE';
+      const estCol=(p.estadoCartera||'Captada')==='Captada'?'#0C447C':'#27500A';
+      h+=`<tr>
+        <td style="font-weight:500;font-size:12px">${p.direccion||'—'}${elBadge}</td>
+        <td><span class="tag tag-otro" style="font-size:11px">${p.tipo||'—'}</span></td>
+        <td><select onchange="cambiarEstadoProp(${idx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8;background:${estBg};color:${estCol}">
+          <option value="Captada" ${(p.estadoCartera||'Captada')==='Captada'?'selected':''}>Captada</option>
+          <option value="Vendida" ${p.estadoCartera==='Vendida'?'selected':''}>Vendida</option>
+        </select></td>
+        <td style="font-size:12px;color:#888">${p.duenio||'—'}</td>
+        <td style="font-size:13px;font-weight:500">${formatUSD(p.precio)}</td>
+        <td style="font-size:12px;color:#888">${formatUSD(p.tasacion)}</td>
+        <td style="text-align:center">${diffHtml}</td>
+        <td style="${dp!==null&&dp>90?'background:#FCEBEB;':dp!==null&&dp>60?'background:#FAEEDA;':''}text-align:center;font-size:12px">${dp!==null?dp+'d':'—'}</td>
+        <td style="text-align:center">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px">
+            <span style="font-size:13px;font-weight:600;color:${(p.visitCount||0)>0?'#185FA5':'#aaa'}">${p.visitCount||0}</span>
+            <span style="font-size:10px;color:#aaa">vis.</span>
+          </div>
+          <div style="font-size:10px;color:${dv!==null&&dv>30?'#A32D2D':dv!==null&&dv>14?'#854F0B':'#aaa'}">${dv!==null?dv+'d':''}</div>
+        </td>
+        <td style="${db!==null&&db>30?'background:#FAEEDA;':''}text-align:center;font-size:12px">${db!==null?db+'d':'—'}</td>
+        <td style="white-space:nowrap">
+          <button onclick="abrirModalProp(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px">Editar</button>
+          <button onclick="carteraRegistrarVisita(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px" title="Registrar visita">+Visita</button>
+          <button onclick="carteraRegistrarBP(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px">BP</button>
+        </td>
+      </tr>`;
+    });
+  }
+  h+='</tbody></table></div></div>';
+
+  // ── Pipeline PreListings ──
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h+=`<div style="font-size:15px;font-weight:500">Pipeline de PreListings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${carteraPLs.length} registrados</span></div>`;
+  h+='<button class="btn-primary" style="font-size:12px;padding:6px 14px;background:#534AB7" onclick="abrirModalPL()">+ Agregar PreListing</button></div>';
+  h+='<div class="table-wrap"><table><thead><tr><th style="width:13%">N° Trackeo</th><th style="width:17%">Contacto</th><th style="width:22%">Dirección</th><th style="width:10%">Tipo</th><th style="width:12%">Estado</th><th style="width:11%">Ingreso</th><th>Nota</th></tr></thead><tbody>';
+
+  if(!carteraPLs.length){
+    h+='<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreListings aún. Se sincronizan automáticamente desde los toques con resultado PL.</td></tr>';
+  } else {
+    carteraPLs.forEach((pl,i)=>{
+      const di=daysSinceDate(pl.fecha);
+      h+=`<tr>
+        <td><span class="tracking-num">${pl.trackingNum||'—'}</span></td>
+        <td>${pl.contactName||'—'}</td>
+        <td style="font-size:12px;color:#888">${pl.direccion||'—'}</td>
+        <td><span class="tag tag-otro" style="font-size:11px">${pl.tipo||'—'}</span></td>
+        <td><select onchange="cambiarEstadoPL(${i},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+          ${['Pendiente','Captada','Postergada','Perdida'].map(e=>`<option value="${e}" ${pl.estado===e?'selected':''}>${e}</option>`).join('')}
+        </select></td>
+        <td style="font-size:12px;color:#888">${pl.fecha?pl.fecha.slice(5).replace('-','/'):'—'}${di!==null?' ('+di+'d)':''}</td>
+        <td style="font-size:12px;color:#888">${pl.nota||'—'}</td>
+      </tr>`;
+    });
+  }
+  h+='</tbody></table></div>';
+
+  el.innerHTML = h;
+
+  // Modales — crear solo una vez
+  if(!document.getElementById('modal-prop')){
+    const mp=document.createElement('div');mp.className='overlay';mp.id='modal-prop';
+    mp.innerHTML=`<div class="modal" style="max-width:460px">
+      <h3 id="mp-title">Agregar propiedad</h3>
+      <label class="field-label">Dirección <span class="req">*</span></label><input type="text" id="mp-dir" placeholder="Ej: Calle 13 N°456, La Plata"/>
+      <label class="field-label">Tipo</label><select id="mp-tipo">${PROP_TIPOS.map(t=>'<option>'+t+'</option>').join('')}</select>
+      <label class="field-label">Dueño</label><input type="text" id="mp-duenio" placeholder="Ej: Carlos Sánchez"/>
+      <label class="field-label">Precio publicado (USD)</label><input type="number" id="mp-precio" placeholder="180000"/>
+      <label class="field-label">Precio tasación (USD)</label><input type="number" id="mp-tasacion" placeholder="165000"/>
+      <label class="field-label" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer"><input type="checkbox" id="mp-eleva" style="width:auto;margin:0"/><span>Propiedad de <strong>Eleva</strong></span></label>
+      <label class="field-label">Fecha publicación</label><input type="date" id="mp-fechapub"/>
+      <label class="field-label">Última visita</label><input type="date" id="mp-visita"/>
+      <label class="field-label">Última baja de precio</label><input type="date" id="mp-bp"/>
+      <div class="modal-btns"><button class="btn-sec" onclick="cerrarModalProp()">Cancelar</button><button class="btn-primary" onclick="guardarProp()">Guardar</button></div>
+    </div>`;
+    mp.addEventListener('click',e=>{if(e.target===mp)cerrarModalProp();});
+    document.body.appendChild(mp);
+
+    const mpl=document.createElement('div');mpl.className='overlay';mpl.id='modal-pl';
+    mpl.innerHTML=`<div class="modal" style="max-width:400px">
+      <h3>Agregar PreListing</h3>
+      <label class="field-label">Contacto <span class="req">*</span></label><input type="text" id="mpl-contact" placeholder="Ej: Carlos Sánchez"/>
+      <label class="field-label">Dirección</label><input type="text" id="mpl-dir" placeholder="Ej: Calle 13 N°456"/>
+      <label class="field-label">Tipo</label><select id="mpl-tipo">${PROP_TIPOS.map(t=>'<option>'+t+'</option>').join('')}</select>
+      <label class="field-label">Estado</label><select id="mpl-estado">${['Pendiente','Captada','Postergada','Perdida'].map(e=>'<option>'+e+'</option>').join('')}</select>
+      <label class="field-label">Nota</label><input type="text" id="mpl-nota" placeholder="Ej: Recontactar en 30 días"/>
+      <div class="modal-btns"><button class="btn-sec" onclick="cerrarModalPL()">Cancelar</button><button class="btn-primary" onclick="guardarPL()">Guardar</button></div>
+    </div>`;
+    mpl.addEventListener('click',e=>{if(e.target===mpl)cerrarModalPL();});
+    document.body.appendChild(mpl);
+  }
+}
+
+let _propEditIdx = null;
+function abrirModalProp(idx){
+  _propEditIdx=idx;
+  const p=idx!==null?carteraProps[idx]:null;
+  document.getElementById('mp-title').textContent=p?'Editar propiedad':'Agregar propiedad';
+  document.getElementById('mp-dir').value=p?.direccion||'';
+  document.getElementById('mp-tipo').value=p?.tipo||PROP_TIPOS[0];
+  document.getElementById('mp-duenio').value=p?.duenio||'';
+  document.getElementById('mp-precio').value=p?.precio||'';
+  document.getElementById('mp-tasacion').value=p?.tasacion||'';
+  document.getElementById('mp-eleva').checked=p?.esEleva||false;
+  document.getElementById('mp-fechapub').value=p?.fechaPublicacion||new Date().toISOString().split('T')[0];
+  document.getElementById('mp-visita').value=p?.ultimaVisita||'';
+  document.getElementById('mp-bp').value=p?.ultimaBP||'';
+  document.getElementById('modal-prop').classList.add('open');
+}
+function cerrarModalProp(){ document.getElementById('modal-prop').classList.remove('open'); }
+function guardarProp(){
+  const dir=document.getElementById('mp-dir').value.trim();
+  if(!dir) return;
+  const obj={direccion:dir,tipo:document.getElementById('mp-tipo').value,duenio:document.getElementById('mp-duenio').value,precio:document.getElementById('mp-precio').value,tasacion:document.getElementById('mp-tasacion').value,esEleva:document.getElementById('mp-eleva').checked,fechaPublicacion:document.getElementById('mp-fechapub').value,ultimaVisita:document.getElementById('mp-visita').value,ultimaBP:document.getElementById('mp-bp').value,estado:'activa',estadoCartera:'Captada'};
+  if(_propEditIdx!==null) carteraProps[_propEditIdx]={...carteraProps[_propEditIdx],...obj};
+  else carteraProps.push(obj);
+  cerrarModalProp(); renderCartera();
+}
+
+function abrirModalPL(){ document.getElementById('modal-pl').classList.add('open'); }
+function cerrarModalPL(){ document.getElementById('modal-pl').classList.remove('open'); }
+function guardarPL(){
+  const c=document.getElementById('mpl-contact').value.trim();
+  if(!c) return;
+  const num=typeof generateTrackingNum==='function'?generateTrackingNum('PL'):'PL-'+Date.now();
+  carteraPLs.push({trackingNum:num,contactName:c,direccion:document.getElementById('mpl-dir').value,tipo:document.getElementById('mpl-tipo').value,estado:document.getElementById('mpl-estado').value,fecha:new Date().toISOString().split('T')[0],nota:document.getElementById('mpl-nota').value,auto:false});
+  cerrarModalPL(); renderCartera();
+}
+
+function cambiarEstadoProp(idx, val){
+  if(val==='Vendida'){
+    const p=carteraProps[idx];
+    const pv=prompt('Precio de venta final (USD):',p.precio||'');
+    propiedadesVendidas.push({...p,estadoCartera:'Vendida',precioVenta:pv||p.precio,fechaVenta:new Date().toISOString().split('T')[0],diasMercado:daysSinceDate(p.fechaPublicacion)});
+    carteraProps.splice(idx,1);
+  } else {
+    carteraProps[idx].estadoCartera=val;
+  }
+  renderCartera();
+}
+
+function cambiarEstadoPL(i, val){
+  carteraPLs[i].estado=val;
+  if(val==='Captada'){
+    const pl=carteraPLs[i];
+    if(confirm('¿Agregar "'+pl.contactName+'" a la Cartera activa?')){
+      carteraProps.push({direccion:pl.direccion,tipo:pl.tipo,duenio:pl.contactName,precio:'',tasacion:'',esEleva:false,fechaPublicacion:new Date().toISOString().split('T')[0],ultimaVisita:'',ultimaBP:'',estado:'activa',estadoCartera:'Captada'});
+    }
+  }
+  renderCartera();
+}
+
+function carteraRegistrarVisita(idx){
+  carteraProps[idx].ultimaVisita=new Date().toISOString().split('T')[0];
+  carteraProps[idx].visitCount=(carteraProps[idx].visitCount||0)+1;
+  renderCartera();
+}
+function carteraRegistrarBP(idx){
+  const np=prompt('Nuevo precio publicado (USD):');
+  if(np) carteraProps[idx].precio=np;
+  carteraProps[idx].ultimaBP=new Date().toISOString().split('T')[0];
+  renderCartera();
+}
+
+</script>
+<script>
+// ══════════════════════════════════════════════════
+//  DETALLE DANTE — Reservas y facturación
+// ══════════════════════════════════════════════════
+let reservas = [];
+let objetivosMes = {}; // {YYYY-MM: objetivo}
+let danteReservaEditIdx = null;
+
+const RESERVA_ESTADOS = ['En negociación','Aceptada','Cerrada','Caída'];
+const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const PROCEDENCIAS = ['Repetido','Referido','Eleva','Web','Pauta','Cartel','Otro'];
+
+function formatM(n){ if(!n&&n!==0)return'—'; return '$'+Number(n).toLocaleString('es-AR'); }
+function mesLabel(ym){ if(!ym)return'—'; const [y,m]=ym.split('-'); return MESES_ES[parseInt(m)-1]+' '+y; }
+function getCurrentYM(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+
+// ── Cálculos por mes (usando mes de CIERRE) ──
+function getReservasByMesCierre(ym){
+  return reservas.filter(r=>r.mesCierre===ym && r.estado==='Cerrada');
+}
+function facturadoMes(ym){
+  return getReservasByMesCierre(ym).reduce((s,r)=>s+(Number(r.comision)||0),0);
+}
+function reservasTomadas(ym){
+  return reservas.filter(r=>r.mesToma===ym).length;
+}
+function reservasCerradas(ym){
+  return reservas.filter(r=>r.mesCierre===ym&&r.estado==='Cerrada').length;
+}
+
+// ── Meses únicos con actividad ──
+function getMesesActivos(){
+  const ym = new Set();
+  reservas.forEach(r=>{ if(r.mesToma)ym.add(r.mesToma); if(r.mesCierre)ym.add(r.mesCierre); });
+  Object.keys(objetivosMes).forEach(m=>{ if(/^\d{4}-\d{2}$/.test(m)) ym.add(m); });
+  // Siempre incluir mes actual
+  ym.add(getCurrentYM());
+  return Array.from(ym).sort();
+}
+
+function syncReservasToTrackeo(){
+  if(typeof trkData==='undefined'||typeof WEEKS==='undefined'||!reservas.length) return;
+
+  // Find first week of a given YYYY-MM
+  const firstWeekOfMonth = ym => {
+    if(!ym) return null;
+    return WEEKS.find(w=>{
+      const wym = w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
+      return wym===ym;
+    });
+  };
+
+  // Find last week of a given YYYY-MM
+  const lastWeekOfMonth = ym => {
+    if(!ym) return null;
+    const matches = WEEKS.filter(w=>{
+      const wym = w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
+      return wym===ym;
+    });
+    return matches.length ? matches[matches.length-1] : null;
+  };
+
+  reservas.forEach(r=>{
+    const section = r.punta==='Vendedora' ? 'cart' : 'comp';
+    const label = r.cliente;
+
+    // Retroactive: use first week of mesToma for Ofertas
+    const weekToma = firstWeekOfMonth(r.mesToma);
+    if(weekToma){
+      if(!trkData[weekToma.num][section].Ofertas) trkData[weekToma.num][section].Ofertas=[];
+      const yaOferta = trkData[weekToma.num][section].Ofertas.find(e=>e.n===label&&e.auto===true);
+      if(!yaOferta) trkData[weekToma.num][section].Ofertas.push({n:label,note:'Reserva tomada',auto:true});
+    }
+
+    // Retroactive: use last week of mesCierre for Cierres
+    if(r.estado==='Cerrada'){
+      const weekCierre = lastWeekOfMonth(r.mesCierre);
+      if(weekCierre){
+        if(!trkData[weekCierre.num][section].Cierres) trkData[weekCierre.num][section].Cierres=[];
+        const yaCierre = trkData[weekCierre.num][section].Cierres.find(e=>e.n===label&&e.auto===true);
+        if(!yaCierre) trkData[weekCierre.num][section].Cierres.push({n:label,note:'Cierre '+r.punta,auto:true});
+      }
+    }
+  });
+}
+
+function renderDante(){
+  const el = document.getElementById('dante-view');
+  if(!el) return;
+  syncReservasToTrackeo();
+
+  const curYM = getCurrentYM();
+  const mesesActivos = getMesesActivos();
+
+  // ── Totales generales ──
+  const enNeg    = reservas.filter(r=>r.estado==='En negociación').length;
+  const aceptadas = reservas.filter(r=>r.estado==='Aceptada').length;
+  const cerradas  = reservas.filter(r=>r.estado==='Cerrada').length;
+  const caidas    = reservas.filter(r=>r.estado==='Caída').length;
+  const totalComision = reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const totalBolsillo = reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.bolsillo)||0),0);
+  const enNegValor = reservas.filter(r=>['En negociación','Aceptada'].includes(r.estado)).reduce((s,r)=>s+(Number(r.oferta)||0),0);
+
+  // Mes actual
+  const facCurMes = facturadoMes(curYM);
+  const objCurMes = objetivosMes[curYM]||0;
+  const pctObj    = objCurMes>0?Math.min(100,Math.round(facCurMes/objCurMes*100)):0;
+
+  let h = '';
+
+  // ── Header ──
+  // Objetivo anual
+  const objAnualDante = objetivosMes['anual'] || 0;
+
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
+    <div><div style="font-size:18px;font-weight:500">Dante Reservas</div>
+    <div style="font-size:13px;color:#888;margin-top:2px">Reservas, facturación y seguimiento de operaciones</div></div>
+    <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
+  </div>`;
+
+  // Barra objetivo anual
+  const facAnualTotal = reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const puntasCerradas = reservas.filter(r=>r.estado==='Cerrada').length;
+  const pctAnualFact = objAnualDante>0 ? Math.min(100,Math.round(facAnualTotal/objAnualDante*100)) : 0;
+  const barFactColor = pctAnualFact>=100?'#3B6D11':pctAnualFact>=70?'#854F0B':'#185FA5';
+  const faltaAnual = objAnualDante>0 ? Math.max(0, objAnualDante-facAnualTotal) : 0;
+  h+=`<div style="background:#fff;border:1px solid #e0dfd8;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:${objAnualDante?'12px':'4px'}">
+      <div style="font-size:13px;font-weight:500">Objetivo anual de facturación (USD)</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:#aaa;font-size:13px">$</span>
+        <input type="number" id="obj-anual-input" value="${objAnualDante||''}" placeholder="Ej: 50000"
+          style="width:150px;font-size:13px;padding:6px 10px;border:1px solid #e0dfd8;border-radius:8px"
+          onchange="guardarObjetivoAnual(this.value)"/>
+      </div>
+    </div>
+    ${objAnualDante ? `
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span style="font-size:26px;font-weight:500;color:${barFactColor}">${formatM(facAnualTotal)}</span>
+        <span style="font-size:13px;color:#888">/ ${formatM(objAnualDante)}</span>
+      </div>
+      <span style="font-size:14px;font-weight:600;color:${barFactColor}">${pctAnualFact}%${pctAnualFact>=100?' ✓':''}</span>
+    </div>
+    <div style="height:10px;background:#e0dfd8;border-radius:5px;overflow:hidden;margin-bottom:6px">
+      <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:5px;transition:width .4s"></div>
+    </div>
+    <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(faltaAnual)+' para llegar al objetivo'}</div>
+    ` : '<div style="font-size:12px;color:#aaa">Ingresá tu objetivo anual para ver el progreso</div>'}
+  </div>`;
+
+
+  // ── KPIs fila 1: estados ──
+  // Comisiones acumuladas por estado
+  const comNeg = reservas.filter(r=>r.estado==='En negociación').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const comAcep = reservas.filter(r=>r.estado==='Aceptada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const comCerr = reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const comCaida = reservas.filter(r=>r.estado==='Caída').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  // Eleva vs resto
+  const comEleva = reservas.filter(r=>r.estado==='Cerrada'&&r.procedencia==='Eleva').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const comPropia = comCerr - comEleva;
+  const pctEleva = comCerr>0?Math.round(comEleva/comCerr*100):0;
+  const pctPropia = comCerr>0?Math.round(comPropia/comCerr*100):0;
+
+  h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px">
+    <div class="stat-card"><div class="stat-label">En negociación</div><div class="stat-val" style="font-size:16px;color:#854F0B">${formatM(comNeg)}</div><div class="stat-sub">${enNeg} reservas · comisiones potenciales</div></div>
+    <div class="stat-card"><div class="stat-label">Aceptadas</div><div class="stat-val" style="font-size:16px;color:#185FA5">${formatM(comAcep)}</div><div class="stat-sub">${aceptadas} reservas</div></div>
+    <div class="stat-card"><div class="stat-label">Facturado (cerradas)</div><div class="stat-val" style="font-size:16px;color:#3B6D11">${formatM(comCerr)}</div><div class="stat-sub">${cerradas} cierres</div></div>
+    <div class="stat-card"><div class="stat-label">Caídas</div><div class="stat-val" style="font-size:16px;color:#A32D2D">${formatM(comCaida)}</div><div class="stat-sub">${caidas} reservas perdidas</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div class="stat-card" style="border-left:3px solid #534AB7">
+      <div class="stat-label">Facturación Eleva</div>
+      <div class="stat-val" style="font-size:18px;color:#534AB7">${formatM(comEleva)}</div>
+      <div class="stat-sub">${pctEleva}% del total facturado</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #185FA5">
+      <div class="stat-label">Facturación propia (sin Eleva)</div>
+      <div class="stat-val" style="font-size:18px;color:#185FA5">${formatM(comPropia)}</div>
+      <div class="stat-sub">${pctPropia}% del total facturado</div>
+    </div>
+  </div>`;
+
+  // ── KPI mes actual con objetivo ──
+  h+=`<div style="background:#fff;border:1px solid #e0dfd8;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Facturado ${mesLabel(curYM)}</div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-size:32px;font-weight:500;color:${facCurMes>=objCurMes&&objCurMes>0?'#3B6D11':'#1a1a1a'}">${formatM(facCurMes)}</span>
+          <span style="font-size:14px;color:#888">/ <span id="obj-display">${objCurMes?formatM(objCurMes):'—'}</span></span>
+        </div>
+        <div style="margin-top:8px;height:6px;background:#e0dfd8;border-radius:3px;overflow:hidden;width:300px;max-width:100%">
+          <div style="height:100%;width:${pctObj}%;background:${pctObj>=100?'#3B6D11':pctObj>=70?'#854F0B':'#185FA5'};border-radius:3px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:12px;color:#888;margin-top:4px">${objCurMes?pctObj+'% del objetivo':'Sin objetivo cargado'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="number" id="obj-input" placeholder="Objetivo del mes" value="${objCurMes||''}" style="width:160px;font-size:13px"/>
+        <button class="btn-primary" style="font-size:12px;padding:7px 14px" onclick="guardarObjetivo('${curYM}')">Guardar</button>
+      </div>
+    </div>
+  </div>`;
+
+  // ── Gráfico de líneas ──
+  h+=`<div style="background:#fff;border:1px solid #e0dfd8;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem">
+    <div style="font-size:14px;font-weight:500;margin-bottom:1rem">Evolución mensual</div>
+    <canvas id="dante-chart" height="80"></canvas>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:11px">
+      <span><span style="display:inline-block;width:12px;height:3px;background:#3B6D11;vertical-align:middle;margin-right:4px;border-radius:2px"></span>Reuniones Verdes</span>
+      <span><span style="display:inline-block;width:12px;height:3px;background:#534AB7;vertical-align:middle;margin-right:4px;border-radius:2px"></span>Captaciones</span>
+      <span><span style="display:inline-block;width:12px;height:3px;background:#854F0B;vertical-align:middle;margin-right:4px;border-radius:2px"></span>Reservas tomadas</span>
+      <span><span style="display:inline-block;width:12px;height:3px;background:#185FA5;vertical-align:middle;margin-right:4px;border-radius:2px"></span>Cierres</span>
+    </div>
+  </div>`;
+
+  // ── Tabla por mes ──
+  // Puntas KPI
+  h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">
+    <div class="stat-card" style="border-left:3px solid #185FA5">
+      <div class="stat-label">Puntas cerradas</div>
+      <div class="stat-val" style="color:#185FA5">${puntasCerradas}</div>
+      <div class="stat-sub">reservas cerradas acumuladas</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #3B6D11">
+      <div class="stat-label">Punta vendedora</div>
+      <div class="stat-val" style="color:#3B6D11">${reservas.filter(r=>r.estado==='Cerrada'&&r.punta==='Vendedora').length}</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #534AB7">
+      <div class="stat-label">Punta compradora</div>
+      <div class="stat-val" style="color:#534AB7">${reservas.filter(r=>r.estado==='Cerrada'&&r.punta==='Compradora').length}</div>
+    </div>
+  </div>`;
+
+  h+=`<div style="font-size:15px;font-weight:500;margin-bottom:8px">Facturación por mes</div>
+  <div class="table-wrap" style="margin-bottom:1.5rem"><table>
+    <thead><tr>
+      <th>Mes</th><th>Facturado</th><th>Objetivo</th><th>% Logro</th><th>Reservas tomadas</th><th>Cierres</th>
+    </tr></thead><tbody>`;
+
+  mesesActivos.slice().reverse().forEach(ym=>{
+    const tom = reservasTomadas(ym);
+    const cer = reservasCerradas(ym);
+    const fac = facturadoMes(ym);
+    const obj = objetivosMes[ym]||0;
+    const pct = obj>0?Math.min(100,Math.round(fac/obj*100)):null;
+    const pctColor = pct===null?'#aaa':pct>=100?'#3B6D11':pct>=70?'#854F0B':'#A32D2D';
+    const isCur = ym===curYM;
+    h+=`<tr style="${isCur?'background:#fffbf0;font-weight:500':''}">
+      <td>${mesLabel(ym)}${isCur?' <span style="font-size:10px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:10px">actual</span>':''}</td>
+      <td style="font-weight:500;color:#3B6D11">${fac?formatM(fac):'—'}</td>
+      <td>
+        <input type="number" value="${obj||''}" placeholder="—"
+          style="width:90px;font-size:12px;padding:3px 6px;border:1px solid #e0dfd8;border-radius:6px;color:#888;background:transparent"
+          onchange="guardarObjetivo('${ym}',this.value)"/>
+      </td>
+      <td style="color:${pctColor};font-weight:500">${pct!==null?pct+'%':'—'}</td>
+      <td style="text-align:center">${tom||'—'}</td>
+      <td style="text-align:center">${cer||'—'}</td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+
+  // ── Tabla de reservas ──
+  h+=`<div style="font-size:15px;font-weight:500;margin-bottom:8px">Registro de reservas <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${reservas.length} operaciones</span></div>
+  <div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:1100px">
+    <thead><tr>
+      <th>Estado</th><th>Cliente</th><th>Punta</th><th>Procedencia</th>
+      <th>Oferta</th><th>Comisión</th><th>Bolsillo</th>
+      <th>Mes toma</th><th>Mes cierre</th><th>Código</th><th>Acciones</th>
+    </tr></thead><tbody>`;
+
+  if(!reservas.length){
+    h+=`<tr><td colspan="11" style="padding:3rem;text-align:center;color:#aaa">Aún no hay reservas. Hacé clic en "+ Nueva reserva".</td></tr>`;
+  } else {
+    reservas.forEach((r,i)=>{
+      const estColor={
+        'En negociación':'background:#FAEEDA;color:#633806',
+        'Aceptada':'background:#E6F1FB;color:#0C447C',
+        'Cerrada':'background:#EAF3DE;color:#27500A',
+        'Caída':'background:#FCEBEB;color:#791F1F'
+      }[r.estado]||'';
+      const total=(Number(r.comision)||0);
+      h+=`<tr>
+        <td><select onchange="cambiarEstadoReserva(${i},this.value)" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #e0dfd8;${estColor}">
+          ${RESERVA_ESTADOS.map(e=>`<option value="${e}" ${r.estado===e?'selected':''}>${e}</option>`).join('')}
+        </select></td>
+        <td style="font-size:13px;font-weight:500">${r.cliente||'—'}</td>
+        <td><span class="tag ${r.punta==='Vendedora'?'tag-reunion':'tag-envio'}" style="font-size:11px">${r.punta||'—'}</span>${r.punta==='Vendedora'&&r.codigo?'<br><span style="font-family:monospace;font-size:10px;color:#534AB7">'+r.codigo+'</span>':''}</td>
+        <td style="font-size:12px;color:#888">${r.procedencia||'—'}</td>
+        <td style="font-size:13px;font-weight:500">${formatM(r.oferta)}</td>
+        <td style="color:#3B6D11;font-weight:500">${formatM(r.comision)}</td>
+        <td style="color:#185FA5">${r.bolsillo?formatM(r.bolsillo):'—'}</td>
+        <td style="font-size:12px;color:#888">${mesLabel(r.mesToma)}</td>
+        <td style="font-size:12px;color:#888">${mesLabel(r.mesCierre)}</td>
+        <td><span style="font-family:monospace;font-size:11px;color:#534AB7">${r.codigo||'—'}</span></td>
+        <td><button onclick="abrirModalReserva(${i})" class="btn-sec" style="font-size:11px;padding:3px 8px">Editar</button></td>
+      </tr>`;
+    });
+  }
+  h+=`</tbody></table></div></div>`;
+
+  el.innerHTML = h;
+
+  // Render chart
+  renderDanteChart(mesesActivos);
+
+  // Modal
+  if(!document.getElementById('modal-reserva')){
+    const mr=document.createElement('div');mr.className='overlay';mr.id='modal-reserva';
+    mr.innerHTML=`<div class="modal" style="max-width:480px">
+      <h3 id="mr-title">Nueva reserva</h3>
+      <label class="field-label">Mes de toma de reserva <span class="req">*</span></label>
+      <input type="month" id="mr-mestoma"/>
+      <label class="field-label">Mes de cierre <span class="req">*</span></label>
+      <input type="month" id="mr-mescierre"/>
+      <label class="field-label">Nombre del cliente <span class="req">*</span></label>
+      <input type="text" id="mr-cliente" placeholder="Ej: Martín López"/>
+      <label class="field-label">Punta <span class="req">*</span></label>
+      <select id="mr-punta" onchange="toggleCodigoField()">
+        <option value="Vendedora">Vendedora</option>
+        <option value="Compradora">Compradora</option>
+      </select>
+      <div id="mr-dir-wrap" style="display:none">
+        <label class="field-label">Dirección de la propiedad <span class="req">*</span></label>
+        <input type="text" id="mr-dir" placeholder="Ej: Calle 13 N°456, La Plata"/>
+      </div>
+      <div id="mr-codigo-wrap">
+        <label class="field-label">Código de la propiedad (PL-2026-001)</label>
+        <input type="text" id="mr-codigo" placeholder="Ej: PL-2026-001"/>
+      </div>
+      <label class="field-label">Procedencia</label>
+      <select id="mr-procedencia">${PROCEDENCIAS.map(p=>'<option>'+p+'</option>').join('')}</select>
+      <label class="field-label">Valor de la oferta (USD) <span class="req">*</span></label>
+      <input type="number" id="mr-oferta" placeholder="Ej: 180000" oninput="calcularComision()"/>
+      <label class="field-label">Comisión (USD) — 3% sugerido</label>
+      <input type="number" id="mr-comision" placeholder="Se calcula automático, podés editarlo"/>
+      <label class="field-label">Bolsillo (USD, opcional)</label>
+      <input type="number" id="mr-bolsillo" placeholder="Lo calculás vos"/>
+      <label class="field-label">Estado</label>
+      <select id="mr-estado">${RESERVA_ESTADOS.map(e=>'<option>'+e+'</option>').join('')}</select>
+      <div class="modal-btns">
+        <button class="btn-sec" onclick="cerrarModalReserva()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarReserva()">Guardar</button>
+      </div>
+    </div>`;
+    mr.addEventListener('click',e=>{if(e.target===mr)cerrarModalReserva();});
+    document.body.appendChild(mr);
+  }
+}
+
+function renderDanteChart(meses){
+  const canvas=document.getElementById('dante-chart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.parentElement.clientWidth-40;
+  canvas.width=W; canvas.height=200;
+
+  const labels=meses.slice(-12); // últimos 12 meses
+  const n=labels.length;
+  if(n===0) return;
+
+  // Data series
+  const dataRV=labels.map(ym=>{
+    // Sum RV from trkData for weeks in that month
+    let total=0;
+    if(typeof WEEKS!=='undefined'&&typeof trkData!=='undefined'){
+      WEEKS.forEach(w=>{
+        const d=w.start;
+        const wym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+        if(wym===ym) total+=calcRV(w.num);
+      });
+    }
+    return total;
+  });
+  const dataCapt=labels.map(ym=>{
+    let total=0;
+    if(typeof WEEKS!=='undefined'&&typeof trkData!=='undefined'){
+      WEEKS.forEach(w=>{
+        const d=w.start;
+        const wym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+        if(wym===ym) total+=(trkData[w.num]?.cart?.Capt||[]).length;
+      });
+    }
+    return total;
+  });
+  const dataResToma=labels.map(ym=>reservasTomadas(ym));
+  const dataCierres=labels.map(ym=>reservasCerradas(ym));
+
+  const allVals=[...dataRV,...dataCapt,...dataResToma,...dataCierres];
+  const maxVal=Math.max(...allVals,1);
+
+  const padL=40,padR=20,padT=20,padB=40;
+  const gW=W-padL-padR, gH=200-padT-padB;
+
+  ctx.clearRect(0,0,W,200);
+  ctx.font='11px DM Sans,sans-serif';
+  ctx.fillStyle='#aaa';
+
+  // Grid lines
+  for(let i=0;i<=4;i++){
+    const y=padT+gH*(1-i/4);
+    ctx.strokeStyle='#f0efe9';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.textAlign='right';
+    ctx.fillText(Math.round(maxVal*i/4),padL-6,y+4);
+  }
+
+  // X labels
+  ctx.textAlign='center';ctx.fillStyle='#aaa';
+  labels.forEach((ym,i)=>{
+    const x=padL+gW*i/(n-1||1);
+    const [y,m]=ym.split('-');
+    ctx.fillText(MESES_ES[parseInt(m)-1].slice(0,3),x,200-padB+16);
+  });
+
+  // Draw series
+  const series=[
+    {data:dataRV,color:'#3B6D11',lw:2.5},
+    {data:dataCapt,color:'#534AB7',lw:2},
+    {data:dataResToma,color:'#854F0B',lw:2},
+    {data:dataCierres,color:'#185FA5',lw:2},
+  ];
+
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color;ctx.lineWidth=s.lw;ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();
+    s.data.forEach((v,i)=>{
+      const x=padL+gW*i/(n-1||1);
+      const y=padT+gH*(1-v/maxVal);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // Dots
+    s.data.forEach((v,i)=>{
+      if(v===0) return;
+      const x=padL+gW*i/(n-1||1);
+      const y=padT+gH*(1-v/maxVal);
+      ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=s.color;ctx.textAlign='center';ctx.font='10px DM Sans,sans-serif';
+      ctx.fillText(v,x,y-7);
+    });
+  });
+}
+
+function toggleCodigoField(){
+  const punta=document.getElementById('mr-punta').value;
+  document.getElementById('mr-codigo-wrap').style.display=punta==='Vendedora'?'block':'none';
+  document.getElementById('mr-dir-wrap').style.display=punta==='Compradora'?'block':'none';
+}
+
+function calcularComision(){
+  const oferta=Number(document.getElementById('mr-oferta').value)||0;
+  document.getElementById('mr-comision').value=Math.round(oferta*0.03)||'';
+}
+
+function abrirModalReserva(idx){
+  danteReservaEditIdx=idx;
+  const r=idx!==null?reservas[idx]:null;
+  document.getElementById('mr-title').textContent=r?'Editar reserva':'Nueva reserva';
+  document.getElementById('mr-mestoma').value=r?.mesToma||getCurrentYM();
+  document.getElementById('mr-mescierre').value=r?.mesCierre||getCurrentYM();
+  document.getElementById('mr-cliente').value=r?.cliente||'';
+  document.getElementById('mr-punta').value=r?.punta||'Vendedora';
+  document.getElementById('mr-codigo').value=r?.codigo||'';
+  document.getElementById('mr-procedencia').value=r?.procedencia||PROCEDENCIAS[0];
+  document.getElementById('mr-oferta').value=r?.oferta||'';
+  document.getElementById('mr-comision').value=r?.comision||'';
+  document.getElementById('mr-bolsillo').value=r?.bolsillo||'';
+  document.getElementById('mr-estado').value=r?.estado||'En negociación';
+  document.getElementById('mr-dir').value=r?.direccion||'';
+  toggleCodigoField();
+  document.getElementById('modal-reserva').classList.add('open');
+}
+
+function cerrarModalReserva(){ document.getElementById('modal-reserva').classList.remove('open'); }
+
+function guardarReserva(){
+  const cliente=document.getElementById('mr-cliente').value.trim();
+  const oferta=document.getElementById('mr-oferta').value;
+  const mesToma=document.getElementById('mr-mestoma').value;
+  const mesCierre=document.getElementById('mr-mescierre').value;
+  if(!cliente||!oferta||!mesToma||!mesCierre){ alert('Completá los campos obligatorios.'); return; }
+  const punta=document.getElementById('mr-punta').value;
+  const direccion=document.getElementById('mr-dir')?.value||'';
+  if(punta==='Compradora'&&!direccion){ alert('Ingresá la dirección de la propiedad.'); return; }
+
+  const obj={
+    mesToma, mesCierre, cliente,
+    punta,
+    direccion,
+    codigo:document.getElementById('mr-codigo').value,
+    procedencia:document.getElementById('mr-procedencia').value,
+    oferta:Number(oferta),
+    comision:Number(document.getElementById('mr-comision').value)||0,
+    bolsillo:Number(document.getElementById('mr-bolsillo').value)||0,
+    estado:document.getElementById('mr-estado').value,
+  };
+  const isNew = danteReservaEditIdx===null;
+  const prevEstado = isNew ? null : reservas[danteReservaEditIdx]?.estado;
+  if(danteReservaEditIdx!==null) reservas[danteReservaEditIdx]={...reservas[danteReservaEditIdx],...obj};
+  else reservas.push(obj);
+
+  // ── Sync → Trackeo Semanal ──
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+    const section = obj.punta==='Vendedora' ? 'cart' : 'comp';
+    const label = obj.cliente;
+
+    // Al agregar nueva reserva → usa semana ACTUAL para Ofertas
+    if(isNew){
+      const cw = currentWeek();
+      if(!trkData[cw.num][section].Ofertas) trkData[cw.num][section].Ofertas=[];
+      trkData[cw.num][section].Ofertas.push({n:label, note:'Reserva tomada', auto:true});
+    }
+
+    // Al pasar a Cerrada → usa semana ACTUAL para Cierres, sin quitar Ofertas
+    if(obj.estado==='Cerrada' && prevEstado!=='Cerrada'){
+      const cw = currentWeek();
+      if(!trkData[cw.num][section].Cierres) trkData[cw.num][section].Cierres=[];
+      trkData[cw.num][section].Cierres.push({n:label, note:'Cierre '+obj.punta, auto:true});
+    }
+  }
+
+  // ── Calendar events for punta compradora ──
+  if(punta==='Compradora' && obj.estado==='Cerrada'){
+    const pad=n=>String(n).padStart(2,'0');
+    const now=new Date();
+
+    // Aniversario de compra en 1 año
+    const aniv=new Date(now); aniv.setFullYear(aniv.getFullYear()+1);
+    const anivStart=`${aniv.getFullYear()}${pad(aniv.getMonth()+1)}${pad(aniv.getDate())}`;
+    const anivEnd=new Date(aniv); anivEnd.setDate(anivEnd.getDate()+1);
+    const anivEndStr=`${anivEnd.getFullYear()}${pad(anivEnd.getMonth()+1)}${pad(anivEnd.getDate())}`;
+    const urlAniv=`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent('Aniversario de compra - '+cliente)}&dates=${anivStart}/${anivEndStr}&details=${encodeURIComponent('Propiedad: '+direccion)}&recur=RRULE:FREQ%3DYEARLY`;
+    window.open(urlAniv,'_blank');
+
+    // Recordatorio regalo a los 15 días
+    const regalo=new Date(now); regalo.setDate(regalo.getDate()+15);
+    const regaloStart=`${regalo.getFullYear()}${pad(regalo.getMonth()+1)}${pad(regalo.getDate())}T100000`;
+    const regaloEnd=`${regalo.getFullYear()}${pad(regalo.getMonth()+1)}${pad(regalo.getDate())}T110000`;
+    const urlRegalo=`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent('Regalo para '+cliente)}&dates=${regaloStart}/${regaloEnd}&details=${encodeURIComponent('Escribirle a '+cliente+' para comprar regalo de mudanza.\nPropiedad: '+direccion)}`;
+    setTimeout(()=>window.open(urlRegalo,'_blank'), 500);
+  }
+
+  cerrarModalReserva();
+  renderDante();
+}
+
+function cambiarEstadoReserva(i,val){
+  reservas[i].estado=val;
+  renderDante();
+}
+
+function guardarObjetivoAnual(val){
+  objetivosMes['anual'] = Number(val)||0;
+  renderDante();
+}
+
+function guardarObjetivo(ym){
+  const val=Number(document.getElementById('obj-input').value)||0;
+  objetivosMes[ym]=val;
+  renderDante();
+}
+</script>
+<script>
+// ══════════════════════════════════════════════════
+//  TRACKEO SEMANAL — construido desde cero
+// ══════════════════════════════════════════════════
+
+// ── Semanas 2026 (lunes a domingo, arranca 5 enero) ──
+const WEEKS = (function(){
+  const weeks = [];
+  let d = new Date(2026, 0, 5); // lunes 5 enero 2026
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = dt => `${pad(dt.getDate())}/${pad(dt.getMonth()+1)}`;
+  for(let w = 1; w <= 52; w++){
+    const start = new Date(d);
+    const end   = new Date(d); end.setDate(end.getDate()+6);
+    weeks.push({ num:w, start, end, range:`${fmt(start)}–${fmt(end)}` });
+    d.setDate(d.getDate()+7);
+  }
+  return weeks;
+})();
+
+const TRK_PROSP  = ['Reuniones'];
+const TRK_CART   = ['PL','Capt','Ofertas','Cierres','BP','Referidos'];
+const TRK_COMP   = ['PB','Ofertas','Cierres','Referidos'];
+const META_SEMANAL_RV = 18;
+const META_ANUAL_RV   = META_SEMANAL_RV * 52; // 936
+
+// Storage: trkData[weekNum] = { prosp:{}, cart:{}, comp:{} }
+let trkData = {};
+WEEKS.forEach(w => {
+  trkData[w.num] = {
+    prosp: { 'Reuniones':[] },
+    cart:  { PL:[], Capt:[], Ofertas:[], Cierres:[], BP:[], Referidos:[] },
+    comp:  { PB:[], Ofertas:[], Cierres:[], Referidos:[] },
+  };
+});
+
+function generateTrackingNum(type){
+  oppCounters[type] = (oppCounters[type]||0)+1;
+  return `${type}-${new Date().getFullYear()}-${String(oppCounters[type]).padStart(3,'0')}`;
+}
+
+// ── RV formula ──
+function calcRV(weekNum){
+  const d = trkData[weekNum];
+  if(!d) return 0;
+  return (d.cart.PL||[]).length + (d.cart.BP||[]).length
+    + (d.cart.Ofertas||[]).length + (d.cart.Cierres||[]).length
+    + (d.comp.PB||[]).length + (d.comp.Ofertas||[]).length + (d.comp.Cierres||[]).length
+    + TRK_PROSP.reduce((s,f)=>s+(d.prosp[f]||[]).length, 0);
+}
+
+function currentWeek(){
+  const now = new Date();
+  return WEEKS.find(w => now >= w.start && now <= w.end) || WEEKS[WEEKS.length-1];
+}
+
+// ── Modal state ──
+let trkModal = { week:null, section:null, field:null };
+
+// ── Main render ──
+function iniciarTrackeo(){
+  const el = document.getElementById('trackeo-content');
+  if(!el){ console.error('trackeo-content not found'); return; }
+
+  const cw = currentWeek();
+  const rvCurSem = calcRV(cw.num);
+  const rvTotal  = WEEKS.reduce((s,w) => s+calcRV(w.num), 0);
+  const pctSem   = Math.min(100, Math.round(rvCurSem/META_SEMANAL_RV*100));
+  const pctAnual = Math.min(100, Math.round(rvTotal/META_ANUAL_RV*100));
+  const delta    = rvTotal - META_SEMANAL_RV * cw.num;
+  const ritmoHtml= delta>=0
+    ? `<span style="color:#3B6D11;font-weight:500">+${delta} sobre el ritmo ✓</span>`
+    : `<span style="color:#A32D2D;font-weight:500">${delta} bajo el ritmo</span>`;
+
+  const barAnualColor = pctAnual>=100?'#27500A':pctAnual>=70?'#854F0B':'#A32D2D';
+
+  let h = '';
+
+  // Header
+  h += `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1.25rem">
+    <div>
+      <div style="font-size:18px;font-weight:500">Trackeo Semanal 2026</div>
+      <div style="font-size:13px;color:#888;margin-top:2px">Semana actual: <strong>Semana ${cw.num}</strong> · ${cw.range}</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="text" id="trk-search" placeholder="Buscar semana..." oninput="trkFilter()" style="width:150px"/>
+      <button class="btn-sec" style="font-size:12px" onclick="trkScrollToCurrent()">Ir a semana actual</button>
+    </div>
+  </div>`;
+
+  // RV Cards
+  h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem">
+    <div style="padding:1rem 1.25rem;background:#EAF3DE;border-radius:10px;border:1px solid #C0DD97">
+      <div style="font-size:11px;font-weight:500;color:#3B6D11;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">🟢 Verdes esta semana (Sem. ${cw.num})</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:.5rem">
+        <span style="font-size:38px;font-weight:500;color:#27500A">${rvCurSem}</span>
+        <span style="font-size:14px;color:#639922">/ ${META_SEMANAL_RV}</span>
+      </div>
+      <div style="height:6px;background:#C0DD97;border-radius:3px;overflow:hidden;margin-bottom:.4rem">
+        <div style="height:100%;width:${pctSem}%;background:#27500A;border-radius:3px"></div>
+      </div>
+      <div style="font-size:12px;color:#3B6D11">${pctSem}% · ${rvCurSem>=META_SEMANAL_RV?'<strong>¡Meta cumplida!</strong>':'Faltan <strong>'+(META_SEMANAL_RV-rvCurSem)+'</strong>'}</div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#EAF3DE;border-radius:10px;border:1px solid #C0DD97">
+      <div style="font-size:11px;font-weight:500;color:#3B6D11;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">🟢 Verdes acumuladas 2026</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:.5rem">
+        <span style="font-size:38px;font-weight:500;color:#27500A">${rvTotal}</span>
+        <span style="font-size:14px;color:#639922">/ ${META_ANUAL_RV}</span>
+      </div>
+      <div style="height:6px;background:#C0DD97;border-radius:3px;overflow:hidden;margin-bottom:.4rem">
+        <div style="height:100%;width:${pctAnual}%;background:${barAnualColor};border-radius:3px"></div>
+      </div>
+      <div style="font-size:12px;color:#3B6D11">${pctAnual}% anual · ${ritmoHtml}</div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#888;background:#f5f4f0;padding:8px 12px;border-radius:8px;margin-bottom:1.25rem;border:1px solid #e0dfd8">
+    <strong>Reuniones Verdes</strong> = Prospección (Reuniones) + PL + BP + Ofertas (cartera y comprador) + Cierres (cartera y comprador) + PB · Meta: <strong>18/semana · 936/año</strong>
+  </div>`;
+
+  // ── Ritmo esperado card ──
+  const rvEsperado = META_SEMANAL_RV * cw.num;
+  const rvFaltanAnual = Math.max(0, META_ANUAL_RV - rvTotal);
+  const rvFaltanRitmo = Math.max(0, rvEsperado - rvTotal);
+  const adelanto = rvTotal - rvEsperado;
+  const ritmoColor = adelanto >= 0 ? '#3B6D11' : '#A32D2D';
+  const ritmoBg = adelanto >= 0 ? '#EAF3DE' : '#FCEBEB';
+  const ritmoBorder = adelanto >= 0 ? '#C0DD97' : '#F4C0D1';
+
+  h += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem">
+    <div style="padding:.85rem 1rem;background:#fff;border-radius:10px;border:1px solid #e0dfd8;text-align:center">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Van en el año</div>
+      <div style="font-size:32px;font-weight:500;color:#27500A">${rvTotal}</div>
+      <div style="font-size:11px;color:#aaa;margin-top:2px">de ${META_ANUAL_RV} objetivo anual</div>
+    </div>
+    <div style="padding:.85rem 1rem;background:#fff;border-radius:10px;border:1px solid #e0dfd8;text-align:center">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Deberían ir (Sem. ${cw.num})</div>
+      <div style="font-size:32px;font-weight:500;color:#185FA5">${rvEsperado}</div>
+      <div style="font-size:11px;color:#aaa;margin-top:2px">${META_SEMANAL_RV}/semana × ${cw.num} semanas</div>
+    </div>
+    <div style="padding:.85rem 1rem;background:${ritmoBg};border-radius:10px;border:1px solid ${ritmoBorder};text-align:center">
+      <div style="font-size:11px;color:${ritmoColor};text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">% de logro anual</div>
+      <div style="font-size:32px;font-weight:500;color:${ritmoColor}">${pctAnual}%</div>
+      <div style="font-size:11px;color:${ritmoColor};margin-top:2px">${adelanto >= 0 ? '+'+adelanto+' adelantado' : adelanto+' atrasado'}</div>
+    </div>
+  </div>`;
+
+  // Stat cards totales
+  const totP  = TRK_PROSP.reduce((s,f)=>s+WEEKS.reduce((ss,w)=>(trkData[w.num].prosp[f]||[]).length+ss,0),0);
+  const totPL = WEEKS.reduce((s,w)=>s+(trkData[w.num].cart.PL||[]).length,0);
+  const totCapt=WEEKS.reduce((s,w)=>s+(trkData[w.num].cart.Capt||[]).length,0);
+  const totPB = WEEKS.reduce((s,w)=>s+(trkData[w.num].comp.PB||[]).length,0);
+  const totCC = WEEKS.reduce((s,w)=>s+(trkData[w.num].cart.Cierres||[]).length+(trkData[w.num].comp.Cierres||[]).length,0);
+  h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.25rem">
+    <div class="stat-card"><div class="stat-label">Prospección</div><div class="stat-val" style="color:#712B13">${totP}</div></div>
+    <div class="stat-card"><div class="stat-label">PL Cartera</div><div class="stat-val" style="color:#534AB7">${totPL}</div></div>
+    <div class="stat-card"><div class="stat-label">Captaciones</div><div class="stat-val" style="color:#3B6D11">${totCapt}</div></div>
+    <div class="stat-card"><div class="stat-label">PB Comprador</div><div class="stat-val" style="color:#085041">${totPB}</div></div>
+    <div class="stat-card"><div class="stat-label">Cierres totales</div><div class="stat-val" style="color:#185FA5">${totCC}</div></div>
+    <div class="stat-card"><div class="stat-label">Verdes año</div><div class="stat-val" style="color:#27500A">${rvTotal}</div></div>
+  </div>`;
+
+  // ── Ratios de conversión ──
+  const totPLyr  = WEEKS.reduce((s,w)=>s+(trkData[w.num].cart.PL||[]).length,0);
+  const totCaptyr= WEEKS.reduce((s,w)=>s+(trkData[w.num].cart.Capt||[]).length,0);
+  const totCierrVyr=WEEKS.reduce((s,w)=>s+(trkData[w.num].cart.Cierres||[]).length,0);
+  const totPByr  = WEEKS.reduce((s,w)=>s+(trkData[w.num].comp.PB||[]).length,0);
+  const totRVyr  = rvTotal;
+
+  const acm        = totPLyr>0 ? (totCaptyr/totPLyr*100).toFixed(0)+'%' : '—';
+  const rotacion   = totCaptyr>0 ? (totCierrVyr/totCaptyr*100).toFixed(0)+'%' : '—';
+  const verdxPL    = totPLyr>0 ? (totRVyr/totPLyr).toFixed(1) : '—';
+  const verdxPB    = totPByr>0 ? (totRVyr/totPByr).toFixed(1) : '—';
+
+  h += `<div style="margin-bottom:1.25rem">
+    <div style="font-size:13px;font-weight:500;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Ratios de conversión</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      <div class="stat-card" style="border-left:3px solid #534AB7">
+        <div class="stat-label">Tasa ACM</div>
+        <div class="stat-val" style="color:#534AB7">${acm}</div>
+        <div class="stat-sub">Captaciones / PL · ${totCaptyr} de ${totPLyr}</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid #185FA5">
+        <div class="stat-label">Rotación de cartera</div>
+        <div class="stat-val" style="color:#185FA5">${rotacion}</div>
+        <div class="stat-sub">Cierres vendedora / Captaciones</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid #3B6D11">
+        <div class="stat-label">Verdes × PL</div>
+        <div class="stat-val" style="color:#3B6D11">${verdxPL}</div>
+        <div class="stat-sub">Reuniones Verdes necesarias por cada PL</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid #085041">
+        <div class="stat-label">Verdes × PB</div>
+        <div class="stat-val" style="color:#085041">${verdxPB}</div>
+        <div class="stat-sub">Reuniones Verdes necesarias por cada PB</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Table
+  const nP=TRK_PROSP.length, nC=TRK_CART.length, nB=TRK_COMP.length;
+  h += `<div style="border:1px solid #e0dfd8;border-radius:10px;overflow:hidden;background:#fff">
+    <div style="overflow-x:auto">
+    <table style="border-collapse:collapse;width:100%;table-layout:auto;min-width:${80+nP*70+nC*70+nB*70+60}px">
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:70px;background:#f0efe9;padding:8px 6px;font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e0dfd8;border-right:2px solid #e0dfd8;position:sticky;left:0;z-index:3;text-align:center">Sem.</th>
+          <th colspan="${nP}" style="background:#FAECE7;color:#712B13;text-align:center;padding:7px;font-size:12px;font-weight:500;letter-spacing:.04em;border-right:2px solid #F4A07A;border-bottom:1px solid #F4A07A">PROSPECCIÓN</th>
+          <th colspan="${nC}" style="background:#EEEDFE;color:#3C3489;text-align:center;padding:7px;font-size:12px;font-weight:500;letter-spacing:.04em;border-right:2px solid #AFA9EC;border-bottom:1px solid #AFA9EC">CARTERA</th>
+          <th colspan="${nB}" style="background:#E1F5EE;color:#085041;text-align:center;padding:7px;font-size:12px;font-weight:500;letter-spacing:.04em;border-right:2px solid #5DCAA5;border-bottom:1px solid #5DCAA5">COMPRADOR</th>
+          <th rowspan="2" style="background:#EAF3DE;color:#27500A;text-align:center;padding:6px 8px;font-size:11px;font-weight:500;border-bottom:1px solid #e0dfd8;white-space:nowrap">🟢 RV</th>
+        </tr>
+        <tr>`;
+
+  TRK_PROSP.forEach((f,i)=>{
+    h+=`<th style="background:#FAECE7;color:#712B13;padding:6px 8px;font-size:11px;font-weight:500;text-align:center;border-bottom:1px solid #e0dfd8;white-space:nowrap${i===nP-1?';border-right:2px solid #F4A07A':''}">${f}</th>`;
+  });
+  TRK_CART.forEach((f,i)=>{
+    h+=`<th style="background:#EEEDFE;color:#534AB7;padding:6px 8px;font-size:11px;font-weight:500;text-align:center;border-bottom:1px solid #e0dfd8;white-space:nowrap${i===nC-1?';border-right:2px solid #AFA9EC':''}">${f}</th>`;
+  });
+  TRK_COMP.forEach((f,i)=>{
+    h+=`<th style="background:#E1F5EE;color:#085041;padding:6px 8px;font-size:11px;font-weight:500;text-align:center;border-bottom:1px solid #e0dfd8;white-space:nowrap${i===nB-1?';border-right:2px solid #5DCAA5':''}">${f}</th>`;
+  });
+  h+=`</tr></thead><tbody>`;
+
+  const METAS_C={PL:2,Capt:0,Ofertas:0,Cierres:0,BP:0,Referidos:2};
+  const METAS_B={PB:2,Ofertas:0,Cierres:0,Referidos:2};
+
+  WEEKS.forEach(w=>{
+    const isCur = w.num===cw.num;
+    const rv = calcRV(w.num);
+    const rvColor = rv>=META_SEMANAL_RV?'#27500A':rv>=9?'#854F0B':'#A32D2D';
+    const rvBg = rv>=META_SEMANAL_RV?'background:#EAF3DE;':rv>0?'background:#FAEEDA;':'';
+    const rowBg = isCur?'background:#FFF8E1;':'';
+
+    h+=`<tr id="tw-${w.num}" style="${rowBg}border-bottom:1px solid #f0efe9;">`;
+
+    // Week label cell
+    h+=`<td style="text-align:center;padding:7px 4px;background:${isCur?'#FFF3C4':'#faf9f5'};border-right:2px solid #e0dfd8;position:sticky;left:0;z-index:2;${isCur?'border-left:3px solid #F59E0B;':''}">
+      <div style="font-size:12px;font-weight:${isCur?'700':'500'};color:${isCur?'#92400E':'#1a1a1a'}">S${w.num}</div>
+      ${isCur?'<div style="font-size:9px;background:#F59E0B;color:#fff;border-radius:8px;padding:1px 4px;margin-top:2px">HOY</div>':''}
+    </td>`;
+
+    // PROSPECCIÓN cells
+    TRK_PROSP.forEach((f,i)=>{
+      const entries=(trkData[w.num].prosp[f]||[]);
+      const count=entries.length;
+      const tooltip=entries.map(e=>e.n+(e.note?' · '+e.note:'')).join('\n');
+      h+=`<td style="text-align:center;padding:5px 4px;${i===nP-1?'border-right:2px solid #F4A07A;':''}border-bottom:1px solid #f0efe9;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+          ${count?`<span style="font-size:13px;font-weight:500;color:#712B13;cursor:pointer;text-decoration:underline dotted" onclick="trkShowPeople(${w.num},'prosp','${f}')" title="${tooltip.replace(/"/g,'&quot;')}">${count}</span>`:'<span style="color:#e8e6de;font-size:11px">—</span>'}
+          <button onclick="trkAdd(${w.num},'prosp','${f}')" style="background:none;border:1px solid #e8e6de;border-radius:50%;width:15px;height:15px;font-size:10px;cursor:pointer;color:#ccc;padding:0;line-height:1;flex-shrink:0">+</button>
+        </div>
+      </td>`;
+    });
+
+    // CARTERA cells
+    TRK_CART.forEach((f,i)=>{
+      const entries=(trkData[w.num].cart[f]||[]);
+      const count=entries.length;
+      const meta=METAS_C[f]||0;
+      const cbg=meta>0?(count>=meta?'background:#EAF3DE;':'background:#FCEBEB;'):'';
+      const col=meta>0?(count>=meta?'#27500A':'#A32D2D'):'#534AB7';
+      const tooltip=entries.map(e=>e.n+(e.note?' · '+e.note:'')).join('\n');
+      h+=`<td style="text-align:center;padding:5px 4px;${cbg}${i===nC-1?'border-right:2px solid #AFA9EC;':''}border-bottom:1px solid #f0efe9;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+          ${count?`<span style="font-size:13px;font-weight:500;color:${col};cursor:pointer;text-decoration:underline dotted" onclick="trkShowPeople(${w.num},'cart','${f}')" title="${tooltip.replace(/"/g,'&quot;')}">${count}${meta?'<span style="font-size:9px;opacity:.6">/'+meta+'</span>':''}</span>`:(meta?`<span style="font-size:10px;color:#ffaaaa">0/${meta}</span>`:'<span style="color:#e8e6de;font-size:11px">—</span>')}
+          <button onclick="trkAdd(${w.num},'cart','${f}')" style="background:none;border:1px solid #e8e6de;border-radius:50%;width:15px;height:15px;font-size:10px;cursor:pointer;color:#ccc;padding:0;line-height:1;flex-shrink:0">+</button>
+        </div>
+      </td>`;
+    });
+
+    // COMPRADOR cells
+    TRK_COMP.forEach((f,i)=>{
+      const entries=(trkData[w.num].comp[f]||[]);
+      const count=entries.length;
+      const meta=METAS_B[f]||0;
+      const cbg=meta>0?(count>=meta?'background:#EAF3DE;':'background:#FCEBEB;'):'';
+      const col=meta>0?(count>=meta?'#27500A':'#A32D2D'):'#085041';
+      const tooltip=entries.map(e=>e.n+(e.note?' · '+e.note:'')).join('\n');
+      h+=`<td style="text-align:center;padding:5px 4px;${cbg}${i===nB-1?'border-right:2px solid #5DCAA5;':''}border-bottom:1px solid #f0efe9;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+          ${count?`<span style="font-size:13px;font-weight:500;color:${col};cursor:pointer;text-decoration:underline dotted" onclick="trkShowPeople(${w.num},'comp','${f}')" title="${tooltip.replace(/"/g,'&quot;')}">${count}${meta?'<span style="font-size:9px;opacity:.6">/'+meta+'</span>':''}</span>`:(meta?`<span style="font-size:10px;color:#ffaaaa">0/${meta}</span>`:'<span style="color:#e8e6de;font-size:11px">—</span>')}
+          <button onclick="trkAdd(${w.num},'comp','${f}')" style="background:none;border:1px solid #e8e6de;border-radius:50%;width:15px;height:15px;font-size:10px;cursor:pointer;color:#ccc;padding:0;line-height:1;flex-shrink:0">+</button>
+        </div>
+      </td>`;
+    });
+
+    // RV cell
+    h+=`<td style="text-align:center;padding:5px 6px;${rv>0?rvBg:''}border-bottom:1px solid #f0efe9;">
+      <span style="font-size:13px;font-weight:700;color:${rv>0?rvColor:'#e8e6de'}">${rv||'—'}</span>
+    </td>`;
+
+    h+=`</tr>`;
+  });
+
+  // Totals row
+  h+=`<tfoot><tr style="background:#f0efe9;border-top:2px solid #e0dfd8;">
+    <td style="padding:8px 6px;font-size:11px;font-weight:700;text-align:center;background:#e8e6de;border-right:2px solid #e0dfd8;position:sticky;left:0">TOTAL</td>`;
+  TRK_PROSP.forEach((f,i)=>{
+    const t=WEEKS.reduce((s,w)=>s+(trkData[w.num].prosp[f]||[]).length,0);
+    h+=`<td style="text-align:center;padding:8px 4px;font-size:13px;font-weight:700;color:#712B13${i===nP-1?';border-right:2px solid #F4A07A':''}">${t||'—'}</td>`;
+  });
+  TRK_CART.forEach((f,i)=>{
+    const t=WEEKS.reduce((s,w)=>s+(trkData[w.num].cart[f]||[]).length,0);
+    h+=`<td style="text-align:center;padding:8px 4px;font-size:13px;font-weight:700;color:#534AB7${i===nC-1?';border-right:2px solid #AFA9EC':''}">${t||'—'}</td>`;
+  });
+  TRK_COMP.forEach((f,i)=>{
+    const t=WEEKS.reduce((s,w)=>s+(trkData[w.num].comp[f]||[]).length,0);
+    h+=`<td style="text-align:center;padding:8px 4px;font-size:13px;font-weight:700;color:#085041${i===nB-1?';border-right:2px solid #5DCAA5':''}">${t||'—'}</td>`;
+  });
+  h+=`<td style="text-align:center;padding:8px;font-size:14px;font-weight:700;color:#27500A;background:#EAF3DE">${rvTotal}</td>`;
+  h+=`</tr></tfoot></tbody></table></div></div>`;
+
+  el.innerHTML = h;
+}
+
+// ── Scroll to current week ──
+function trkScrollToCurrent(){
+  iniciarTrackeo();
+  setTimeout(()=>{
+    const cw = currentWeek();
+    const el = document.getElementById('tw-'+cw.num);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 50);
+}
+
+// ── Filter ──
+function trkFilter(){
+  const q=(document.getElementById('trk-search')?.value||'').toLowerCase();
+  WEEKS.forEach(w=>{
+    const el=document.getElementById('tw-'+w.num);
+    if(!el) return;
+    el.style.display=(!q||('s'+w.num).includes(q)||('semana '+w.num).includes(q))?'':'none';
+  });
+}
+
+// ── Open add modal ──
+function trkAdd(weekNum, section, field){
+  trkModal = {week:weekNum, section, field};
+
+  const cfgs = {
+    'prosp:Café':       {title:'Café',          fields:[{id:'n',label:'Contacto',req:true,ph:'Ej: Homero Sánchez'},{id:'note',label:'Lugar (opcional)',req:false,ph:'Ej: La Trattoria'}]},
+    'prosp:Almuerzo':   {title:'Almuerzo',       fields:[{id:'n',label:'Contacto',req:true,ph:'Ej: Homero Sánchez'},{id:'note',label:'Lugar (opcional)',req:false,ph:'Ej: Lo De Tata'}]},
+    'prosp:Reunión':    {title:'Reunión presencial',fields:[{id:'n',label:'Contacto',req:true,ph:'Ej: Homero Sánchez'},{id:'note',label:'Lugar/nota (opcional)',req:false,ph:'Ej: Oficina'}]},
+    'prosp:Evento':     {title:'Evento / networking',fields:[{id:'n',label:'Contacto',req:true,ph:'Ej: Homero Sánchez'},{id:'note',label:'Evento (opcional)',req:false,ph:'Ej: Expo Inmobiliaria'}]},
+    'cart:PL':          {title:'PreListing',     fields:[{id:'n',label:'Nombre del propietario',req:true,ph:'Ej: Carlos Sánchez'},{id:'proc',label:'Procedencia',req:true,type:'sel',opts:['Toque directo','Referido','Eleva','Web','Pauta','Cartel','Otro']},{id:'ref',label:'Cliente que lo refirió (si aplica)',req:false,ph:'Ej: Juan Pérez'},{id:'note',label:'Dirección (opcional)',req:false,ph:'Ej: Calle 13 N°456'}], genCode:'PL'},
+    'cart:Capt':        {title:'Captación',      fields:[{id:'n',label:'Nombre del propietario',req:true,ph:'Ej: Carlos Sánchez'},{id:'note',label:'Dirección de la propiedad',req:true,ph:'Ej: Calle 13 N°456, La Plata'}]},
+    'cart:Ofertas':     {title:'Oferta — Cartera',fields:[{id:'n',label:'Nombre del propietario',req:true,ph:'Ej: Carlos Sánchez'},{id:'note',label:'Dirección de la propiedad',req:true,ph:'Ej: Calle 13 N°456'}]},
+    'cart:Cierres':     {title:'Cierre — Cartera',fields:[{id:'n',label:'Nombre del propietario',req:true,ph:'Ej: Carlos Sánchez'},{id:'note',label:'Dirección de la propiedad',req:true,ph:'Ej: Calle 13 N°456'}]},
+    'cart:BP':          {title:'Baja de precio', fields:[{id:'n',label:'Nombre del propietario',req:true,ph:'Ej: Carlos Sánchez'},{id:'note',label:'Dirección de la propiedad',req:true,ph:'Ej: Calle 13 N°456'}]},
+    'cart:Referidos':   {title:'Referido — Cartera',fields:[{id:'n',label:'Nombre del referido',req:true,ph:'Ej: Miguel Torres'},{id:'ref',label:'Cliente que lo refirió',req:true,ph:'Ej: Juan Pérez'},{id:'note',label:'Dirección (opcional)',req:false,ph:'Ej: Calle 13 N°456'}]},
+    'comp:PB':          {title:'PreBuying',       fields:[{id:'n',label:'Nombre del comprador',req:true,ph:'Ej: Martín López'},{id:'proc',label:'Procedencia',req:true,type:'sel',opts:['Toque directo','Referido','Eleva','Web','Pauta','Cartel','Otro']},{id:'ref',label:'Cliente que lo refirió (si aplica)',req:false,ph:'Ej: Juan Pérez'},{id:'note',label:'Zona / búsqueda (opcional)',req:false,ph:'Ej: 3 amb, zona norte'}], genCode:'PB'},
+    'comp:Ofertas':     {title:'Oferta — Comprador',fields:[{id:'n',label:'Nombre del comprador',req:true,ph:'Ej: Martín López'},{id:'note',label:'Dirección ofertada',req:true,ph:'Ej: Calle 13 N°456'}]},
+    'comp:Cierres':     {title:'Cierre — Comprador',fields:[{id:'n',label:'Nombre del comprador',req:true,ph:'Ej: Martín López'},{id:'note',label:'Dirección de la propiedad',req:true,ph:'Ej: Calle 13 N°456'}]},
+    'comp:Referidos':   {title:'Referido — Comprador',fields:[{id:'n',label:'Nombre del referido',req:true,ph:'Ej: Ana Gómez'},{id:'ref',label:'Cliente que lo refirió',req:true,ph:'Ej: Juan Pérez'},{id:'note',label:'Nota (opcional)',req:false,ph:'Ej: busca 2 amb'}]},
+  };
+
+  const key = section+':'+field;
+  const cfg = cfgs[key]||{title:field,fields:[{id:'n',label:'Contacto',req:true,ph:''}]};
+  const cw  = currentWeek();
+  const w   = WEEKS.find(x=>x.num===weekNum)||cw;
+
+  let form = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem">
+    <span style="font-size:15px;font-weight:500">${cfg.title}</span>
+    <span style="font-size:11px;color:#888">Sem. ${weekNum} · ${w.range}</span>
+  </div>`;
+
+  cfg.fields.forEach(f=>{
+    const reqLabel = f.req
+      ? '<span style="color:#A32D2D">*</span>'
+      : '<span style="font-size:10px;color:#aaa"> (opcional)</span>';
+    form += `<label class="field-label">${f.label} ${reqLabel}</label>`;
+    if(f.type==='sel'){
+      form += `<select id="trkf-${f.id}">${(f.opts||[]).map(o=>`<option>${o}</option>`).join('')}</select>`;
+    } else {
+      form += `<input type="text" id="trkf-${f.id}" placeholder="${f.ph||''}"/>`;
+    }
+  });
+
+  if(cfg.genCode){
+    const next=(oppCounters[cfg.genCode]||0)+1;
+    const preview=`${cfg.genCode}-${new Date().getFullYear()}-${String(next).padStart(3,'0')}`;
+    form+=`<div style="margin-top:12px;padding:10px;background:#EEEDFE;border-radius:8px;border:1px solid #AFA9EC">
+      <div style="font-size:11px;color:#534AB7;margin-bottom:3px">Código de trackeo que se generará</div>
+      <div style="font-family:monospace;font-size:14px;font-weight:600;color:#3C3489">${preview}</div>
+      <div style="font-size:11px;color:#888;margin-top:3px">Este código acompaña la propiedad hasta el cierre</div>
+    </div>`;
+  }
+
+  form+=`<div class="modal-btns" style="margin-top:1rem">
+    <button class="btn-sec" onclick="trkCloseModal()">Cancelar</button>
+    <button class="btn-primary" onclick="trkSave()">Guardar</button>
+  </div>`;
+
+  let overlay=document.getElementById('trk-modal-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.className='overlay';overlay.id='trk-modal-overlay';
+    overlay.innerHTML='<div class="modal" style="max-width:420px" id="trk-modal-inner"></div>';
+    overlay.addEventListener('click',e=>{if(e.target===overlay)trkCloseModal();});
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('trk-modal-inner').innerHTML=form;
+  overlay.classList.add('open');
+}
+
+function trkShowPeople(weekNum, section, field){
+  const entries = (trkData[weekNum]&&trkData[weekNum][section]&&trkData[weekNum][section][field])||[];
+  if(!entries.length){ alert('Sin registros en esta celda.'); return; }
+  const w = WEEKS.find(x=>x.num===weekNum);
+  const sectionLabel = section==='prosp'?'Prospección':section==='cart'?'Cartera':'Comprador';
+
+  // Create modal
+  let modal = document.getElementById('trk-people-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'trk-people-modal';
+    modal.className = 'overlay';
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+    document.body.appendChild(modal);
+  }
+
+  const renderModal = () => {
+    const ents = (trkData[weekNum]&&trkData[weekNum][section]&&trkData[weekNum][section][field])||[];
+    modal.innerHTML = `<div class="modal" style="max-width:420px">
+      <h3 style="margin-bottom:4px">Sem. ${weekNum} · ${sectionLabel} · ${field}</h3>
+      <div style="font-size:12px;color:#888;margin-bottom:1rem">${w?w.range:''} · ${ents.length} registro${ents.length!==1?'s':''}</div>
+      ${ents.length===0 ? '<div style="color:#aaa;text-align:center;padding:1rem">Sin registros</div>' :
+        ents.map((e,i)=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f8f7f4;border-radius:8px;margin-bottom:6px;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500">${e.n||'—'}</div>
+            <div style="font-size:11px;color:#888">${[e.proc,e.ref?'Ref: '+e.ref:'',e.note].filter(Boolean).join(' · ')||'—'}</div>
+          </div>
+          <button onclick="trkDeleteEntry(${weekNum},'${section}','${field}',${i})" 
+            style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;flex-shrink:0">
+            Eliminar
+          </button>
+        </div>`).join('')
+      }
+      <div style="text-align:right;margin-top:1rem">
+        <button class="btn-sec" onclick="document.getElementById('trk-people-modal').classList.remove('open')">Cerrar</button>
+      </div>
+    </div>`;
+    modal.classList.add('open');
+  };
+
+  renderModal();
+
+  // Store context for delete
+  modal._weekNum = weekNum;
+  modal._section = section;
+  modal._field = field;
+  modal._render = renderModal;
+}
+
+function trkDeleteEntry(weekNum, section, field, idx){
+  if(!confirm('¿Eliminar este registro?')) return;
+  trkData[weekNum][section][field].splice(idx, 1);
+  // Re-render modal
+  const modal = document.getElementById('trk-people-modal');
+  if(modal && modal._render) modal._render();
+  // Refresh trackeo
+  iniciarTrackeo();
+}
+
+function trkCloseModal(){
+  const o=document.getElementById('trk-modal-overlay');
+  if(o) o.classList.remove('open');
+}
+
+function trkSave(){
+  const {week,section,field}=trkModal;
+  if(!week) return;
+
+  const n=(document.getElementById('trkf-n')?.value||'').trim();
+  if(!n){ alert('El nombre del contacto es obligatorio.'); return; }
+
+  const note=(document.getElementById('trkf-note')?.value||'').trim();
+  const ref=(document.getElementById('trkf-ref')?.value||'').trim();
+  const proc=(document.getElementById('trkf-proc')?.value||'').trim();
+
+  // Check required non-name fields
+  const noteEl=document.getElementById('trkf-note');
+  const refEl=document.getElementById('trkf-ref');
+  // For fields that require note (dirección)
+  const needsNote=['cart:Capt','cart:Ofertas','cart:Cierres','cart:BP','comp:Ofertas','comp:Cierres'];
+  if(needsNote.includes(section+':'+field) && !note){
+    alert('La dirección de la propiedad es obligatoria.');return;
+  }
+  const needsRef=['cart:Referidos','comp:Referidos'];
+  if(needsRef.includes(section+':'+field) && !ref){
+    alert('El cliente que lo refirió es obligatorio.');return;
+  }
+
+  let trackingNum=null;
+  const cfgCode = section==='cart'&&field==='PL'?'PL':section==='comp'&&field==='PB'?'PB':null;
+  if(cfgCode) trackingNum=generateTrackingNum(cfgCode);
+
+  const entry={n, note, ref, proc, trackingNum, auto:false};
+  trkData[week][section][field].push(entry);
+
+  // Sync PL → carteraPLs
+  if(section==='cart'&&field==='PL'&&trackingNum&&typeof carteraPLs!=='undefined'){
+    carteraPLs.push({trackingNum,contactName:n,direccion:note||'',tipo:'',estado:'Pendiente',fecha:new Date().toISOString().split('T')[0],nota:ref?'Ref: '+ref:'',auto:false});
+  }
+  // Sync Capt → carteraProps
+  if(section==='cart'&&field==='Capt'&&typeof carteraProps!=='undefined'){
+    carteraProps.push({direccion:note||n,tipo:'',duenio:n,precio:'',tasacion:'',esEleva:false,fechaPublicacion:new Date().toISOString().split('T')[0],ultimaVisita:'',ultimaBP:'',estado:'activa',estadoCartera:'Captada'});
+  }
+
+  trkCloseModal();
+  iniciarTrackeo();
+}
+</script>
+<script>
+// ══════════════════════════════════════════════════
+//  BALANCE — ingresos y egresos
+// ══════════════════════════════════════════════════
+
+// gastos[YYYY-MM][categoria] = monto
+let gastos = {};
+
+// Gastos fijos por defecto (USD/mes)
+const GASTOS_FIJOS = [
+  {id:'cuota_oficina', label:'Cuota oficina',    default:968,  fijo:true},
+  {id:'fee_yoyi',      label:'Fee Yoyi',          default:302,  fijo:true},
+  {id:'fee_hernan',    label:'Fee Hernán',         default:302,  fijo:true},
+];
+
+// Gastos variables (sin default)
+const GASTOS_VAR = [
+  {id:'sueldo_asistente', label:'Sueldo Asistente'},
+  {id:'sueldo_cm',        label:'Sueldo CM'},
+  {id:'sueldo_videos',    label:'Sueldo Videos'},
+  {id:'sueldo_pauta',     label:'Sueldo Pauta'},
+  {id:'pauta',            label:'Pauta'},
+  {id:'regalos',          label:'Regalos'},
+  {id:'capacitaciones',   label:'Capacitaciones'},
+];
+
+const TODOS_GASTOS = [...GASTOS_FIJOS, ...GASTOS_VAR];
+
+function getGasto(ym, id){
+  if(!gastos[ym]) return null;
+  return gastos[ym][id] ?? null;
+}
+function setGasto(ym, id, val){
+  if(!gastos[ym]) gastos[ym]={};
+  gastos[ym][id] = val;
+}
+function getGastoConDefault(ym, id){
+  const stored = getGasto(ym, id);
+  if(stored !== null) return stored;
+  const fijo = GASTOS_FIJOS.find(g=>g.id===id);
+  return fijo ? fijo.default : 0;
+}
+function totalGastosMes(ym){
+  return TODOS_GASTOS.reduce((s,g)=>s+getGastoConDefault(ym,g.id),0);
+}
+
+// Ingresos desde Detalle Dante
+function alBolsoMes(ym){
+  if(typeof reservas==='undefined') return 0;
+  return reservas.filter(r=>r.estado==='Cerrada'&&r.mesCierre===ym).reduce((s,r)=>s+(Number(r.bolsillo)||0),0);
+}
+function alBolsoTotal(){
+  if(typeof reservas==='undefined') return 0;
+  return reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.bolsillo)||0),0);
+}
+function porCobrarMes(ym){
+  if(typeof reservas==='undefined') return 0;
+  return reservas.filter(r=>r.estado==='Aceptada'&&r.mesToma===ym).reduce((s,r)=>s+(Number(r.bolsillo)||0),0);
+}
+function porCobrarTotal(){
+  if(typeof reservas==='undefined') return 0;
+  return reservas.filter(r=>r.estado==='Aceptada').reduce((s,r)=>s+(Number(r.bolsillo)||0),0);
+}
+
+function renderBalance(){
+  const el = document.getElementById('balance-view');
+  if(!el) return;
+
+  const curYM = (typeof getCurrentYM==='function') ? getCurrentYM() : new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  // Get all active months (union of reservas months + gastos months + current)
+  const yms = new Set([curYM]);
+  if(typeof reservas!=='undefined') reservas.forEach(r=>{ if(r.mesCierre) yms.add(r.mesCierre); if(r.mesToma) yms.add(r.mesToma); });
+  Object.keys(gastos).forEach(m=>yms.add(m));
+  const meses = Array.from(yms).sort().reverse();
+
+  // Totals annual
+  const totalBolso   = alBolsoTotal();
+  const totalCobrar  = porCobrarTotal();
+  const totalGastos  = meses.reduce((s,ym)=>s+totalGastosMes(ym),0);
+  const balanceNeto  = totalBolso - totalGastos;
+
+  const fmtU = n => '$'+Number(n||0).toLocaleString('es-AR');
+
+  let h = '';
+
+  // ── Header ──
+  h += `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
+    <div>
+      <div style="font-size:18px;font-weight:500">Balance</div>
+      <div style="font-size:13px;color:#888;margin-top:2px">Ingresos y egresos · datos de Detalle Dante</div>
+    </div>
+  </div>`;
+
+  // ── KPIs ──
+  const balColor = balanceNeto>=0?'#3B6D11':'#A32D2D';
+  const balBg    = balanceNeto>=0?'#EAF3DE':'#FCEBEB';
+  h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.25rem">
+    <div class="stat-card" style="border-left:3px solid #3B6D11">
+      <div class="stat-label">Al bolso (cobrado)</div>
+      <div class="stat-val" style="color:#3B6D11;font-size:20px">${fmtU(totalBolso)}</div>
+      <div class="stat-sub">cierres del año</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #185FA5">
+      <div class="stat-label">Por cobrar</div>
+      <div class="stat-val" style="color:#185FA5;font-size:20px">${fmtU(totalCobrar)}</div>
+      <div class="stat-sub">reservas aceptadas</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid #A32D2D">
+      <div class="stat-label">Gastos totales</div>
+      <div class="stat-val" style="color:#A32D2D;font-size:20px">${fmtU(totalGastos)}</div>
+      <div class="stat-sub">acumulado año</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid ${balColor};background:${balBg}">
+      <div class="stat-label">Balance neto</div>
+      <div class="stat-val" style="color:${balColor};font-size:20px">${fmtU(balanceNeto)}</div>
+      <div class="stat-sub">${balanceNeto>=0?'superávit':'déficit'} acumulado</div>
+    </div>
+  </div>`;
+
+  // ── Tabla mes a mes ──
+  h += `<div style="font-size:15px;font-weight:500;margin-bottom:8px">Detalle mensual</div>
+  <div style="border:1px solid #e0dfd8;border-radius:10px;overflow:hidden;background:#fff;margin-bottom:1.5rem">
+    <div style="overflow-x:auto">
+    <table style="table-layout:auto;min-width:700px;border-collapse:collapse;width:100%">
+      <thead>
+        <tr style="background:#f0efe9">
+          <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e0dfd8">Mes</th>
+          <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:500;color:#3B6D11;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e0dfd8">Al bolso</th>
+          <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:500;color:#185FA5;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e0dfd8">Por cobrar</th>
+          <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:500;color:#A32D2D;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e0dfd8">Gastos</th>
+          <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:500;color:#1a1a1a;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e0dfd8">Balance</th>
+          <th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:500;color:#888;border-bottom:1px solid #e0dfd8">Detalle</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  meses.forEach(ym=>{
+    const bolso  = alBolsoMes(ym);
+    const cobrar = porCobrarMes(ym);
+    const gasto  = totalGastosMes(ym);
+    const bal    = bolso - gasto;
+    const isCur  = ym===curYM;
+    const balC   = bal>=0?'#3B6D11':'#A32D2D';
+    const [yr,mo] = ym.split('-');
+    const mesNom = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][parseInt(mo)-1]+' '+yr;
+    h += `<tr style="${isCur?'background:#fffbf0;font-weight:500':''}border-bottom:1px solid #f0efe9">
+      <td style="padding:9px 12px;font-size:13px">${mesNom}${isCur?' <span style="font-size:10px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:10px">actual</span>':''}</td>
+      <td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:500;color:#3B6D11">${bolso?fmtU(bolso):'—'}</td>
+      <td style="padding:9px 12px;text-align:right;font-size:13px;color:#185FA5">${cobrar?fmtU(cobrar):'—'}</td>
+      <td style="padding:9px 12px;text-align:right;font-size:13px;color:#A32D2D">${gasto?fmtU(gasto):'—'}</td>
+      <td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:600;color:${balC}">${fmtU(bal)}</td>
+      <td style="padding:9px 12px;text-align:center">
+        <button onclick="abrirDetalleGastos('${ym}')" class="btn-sec" style="font-size:11px;padding:4px 10px">Gastos</button>
+      </td>
+    </tr>`;
+  });
+
+  h += `</tbody></table></div></div>`;
+
+  // ── Formulario gastos mes actual ──
+  h += `<div style="font-size:15px;font-weight:500;margin-bottom:8px">Cargar gastos — ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][parseInt(curYM.split('-')[1])-1]} ${curYM.split('-')[0]}</div>
+  <div style="background:#fff;border:1px solid #e0dfd8;border-radius:10px;padding:1.25rem;margin-bottom:1.5rem">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">`;
+
+  TODOS_GASTOS.forEach(g=>{
+    const val = getGastoConDefault(curYM, g.id);
+    const isFijo = GASTOS_FIJOS.find(f=>f.id===g.id);
+    h += `<div>
+      <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">${g.label}${isFijo?' <span style="font-size:10px;color:#aaa">(fijo)</span>':''}</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:13px;color:#aaa">$</span>
+        <input type="number" id="gasto_${g.id}" value="${val||''}" placeholder="${isFijo?isFijo.default:'0'}"
+          style="width:100%;font-size:13px;padding:7px 10px;border:1px solid #e0dfd8;border-radius:8px"
+          onchange="guardarGasto('${curYM}','${g.id}',this.value)"/>
+      </div>
+    </div>`;
+  });
+
+  h += `</div>
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e0dfd8;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:14px;font-weight:500;color:#888">Total gastos este mes</div>
+      <div style="font-size:20px;font-weight:500;color:#A32D2D" id="total-gastos-mes">${fmtU(totalGastosMes(curYM))}</div>
+    </div>
+  </div>`;
+
+  el.innerHTML = h;
+}
+
+function guardarGasto(ym, id, val){
+  setGasto(ym, id, Number(val)||0);
+  // Update total display
+  const totalEl = document.getElementById('total-gastos-mes');
+  if(totalEl) totalEl.textContent = '$'+totalGastosMes(ym).toLocaleString('es-AR');
+}
+
+function abrirDetalleGastos(ym){
+  const [yr,mo] = ym.split('-');
+  const mesNom = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][parseInt(mo)-1]+' '+yr;
+  const fmtU = n => '$'+Number(n||0).toLocaleString('es-AR');
+  let msg = `Gastos — ${mesNom}\n\n`;
+  TODOS_GASTOS.forEach(g=>{
+    const v = getGastoConDefault(ym,g.id);
+    if(v) msg += `${g.label}: ${fmtU(v)}\n`;
+  });
+  msg += `\nTOTAL: ${fmtU(totalGastosMes(ym))}`;
+  alert(msg);
+}
+</script>
+<script>
+// ══════════════════════════════════════════════════
+//  COMPRADORES
+// ══════════════════════════════════════════════════
+let compradoresProsp = [];   // compradores activos
+let compradorePBs    = [];   // pipeline de PreBuyings
+let compradoresVendidos = [];
+
+const BUSQUEDA_TIPOS = ['Departamento','Casa','PH','Local comercial','Oficina','Terreno'];
+const PB_ESTADOS = ['Pendiente','En búsqueda','Operación cerrada','Postergado','Perdido'];
+window.compradorFiltroActivo = 'total';
+
+function renderCompradores(){
+  const el = document.getElementById('compradores-view');
+  if(!el) return;
+
+  // Sync PBs from opps
+  if(typeof opps !== 'undefined'){
+    opps.forEach(o=>{
+      if(o.type!=='PB') return;
+      if(!compradorePBs.find(pb=>pb.trackingNum===o.trackingNum)){
+        compradorePBs.push({
+          trackingNum:o.trackingNum, contactName:o.contactName,
+          busqueda:o.property||'', tipo:'', estado:'Pendiente',
+          fecha:o.date, nota:'', presupuesto:'', auto:true
+        });
+      }
+    });
+  }
+
+  const activos = compradoresProsp.filter(p=>p.estado==='activo');
+  const avgPresupuesto = activos.length&&activos.some(p=>p.presupuesto)?
+    Math.round(activos.filter(p=>p.presupuesto).reduce((s,p)=>s+Number(p.presupuesto),0)/activos.filter(p=>p.presupuesto).length):0;
+  const pendPBs = compradorePBs.filter(p=>p.estado==='Pendiente'||p.estado==='En búsqueda').length;
+  const cerradosPBs = compradorePBs.filter(p=>p.estado==='Operación cerrada').length;
+
+  let h = '';
+
+  // Header
+  h += `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
+    <div>
+      <div style="font-size:18px;font-weight:500">Compradores</div>
+      <div style="font-size:13px;color:#888;margin-top:2px">Gestión de compradores activos y pipeline de PreBuyings</div>
+    </div>
+  </div>`;
+
+  // KPIs
+  h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">
+    <div class="stat-card"><div class="stat-label">Compradores activos</div><div class="stat-val" style="color:#085041">${activos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Presupuesto prom.</div><div class="stat-val" style="font-size:16px">${avgPresupuesto?'$'+Number(avgPresupuesto).toLocaleString('es-AR'):'—'}</div></div>
+    <div class="stat-card"><div class="stat-label">PB activos</div><div class="stat-val" style="color:#534AB7">${pendPBs}</div><div class="stat-sub">en búsqueda</div></div>
+    <div class="stat-card"><div class="stat-label">Operaciones cerradas</div><div class="stat-val" style="color:#3B6D11">${cerradosPBs}</div></div>
+    <div class="stat-card"><div class="stat-label">Vendidos (hist.)</div><div class="stat-val" style="color:#3B6D11">${compradoresVendidos.length}</div></div>
+  </div>`;
+
+  // Tabla compradores activos
+  h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="font-size:15px;font-weight:500">Compradores activos <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${activos.length} compradores</span></div>
+    <button class="btn-primary" style="font-size:12px;padding:6px 14px;background:#085041" onclick="abrirModalComprador(null)">+ Agregar comprador</button>
+  </div>
+  <div class="table-wrap" style="margin-bottom:1.5rem"><div style="overflow-x:auto">
+  <table style="table-layout:auto;min-width:900px">
+    <thead><tr>
+      <th>Nombre</th><th>Tipo buscado</th><th>Zona / búsqueda</th><th>Presupuesto (USD)</th><th>Estado</th><th>Días activo</th><th>Acciones</th>
+    </tr></thead><tbody>`;
+
+  if(!activos.length){
+    h += '<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Aún no hay compradores activos. Hacé clic en "+ Agregar comprador".</td></tr>';
+  } else {
+    activos.forEach(p=>{
+      const idx = compradoresProsp.indexOf(p);
+      const diasActivo = p.fechaIngreso ? Math.floor((new Date()-new Date(p.fechaIngreso))/86400000) : '—';
+      const diasColor = typeof diasActivo==='number'&&diasActivo>60?'#A32D2D':typeof diasActivo==='number'&&diasActivo>30?'#854F0B':'#1a1a1a';
+      h += `<tr>
+        <td style="font-weight:500">${p.nombre||'—'}</td>
+        <td><span class="tag tag-otro" style="font-size:11px">${p.tipo||'—'}</span></td>
+        <td style="font-size:12px;color:#888">${p.busqueda||'—'}</td>
+        <td style="font-weight:500">${p.presupuesto?'$'+Number(p.presupuesto).toLocaleString('es-AR'):'—'}</td>
+        <td><select onchange="cambiarEstadoComprador(${idx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+          <option value="activo" ${p.estado==='activo'?'selected':''}>Activo</option>
+          <option value="cerrado" ${p.estado==='cerrado'?'selected':''}>Cerrado</option>
+          <option value="postergado" ${p.estado==='postergado'?'selected':''}>Postergado</option>
+          <option value="perdido" ${p.estado==='perdido'?'selected':''}>Perdido</option>
+        </select></td>
+        <td style="color:${diasColor};font-size:12px">${typeof diasActivo==='number'?diasActivo+'d':diasActivo}</td>
+        <td><button onclick="abrirModalComprador(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px">Editar</button></td>
+      </tr>`;
+    });
+  }
+  h += '</tbody></table></div></div>';
+
+  // Pipeline PreBuyings
+  h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="font-size:15px;font-weight:500">Pipeline de PreBuyings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${compradorePBs.length} registrados</span></div>
+    <button class="btn-primary" style="font-size:12px;padding:6px 14px;background:#534AB7" onclick="abrirModalPB()">+ Agregar PreBuying</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th style="width:13%">N° Trackeo</th><th style="width:17%">Contacto</th>
+      <th style="width:20%">Búsqueda / zona</th><th style="width:10%">Tipo</th>
+      <th style="width:12%">Estado</th><th style="width:11%">Ingreso</th><th style="width:17%">Nota</th>
+    </tr></thead><tbody>`;
+
+  if(!compradorePBs.length){
+    h += '<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreBuyings aún. Se sincronizan automáticamente desde los toques con resultado PB.</td></tr>';
+  } else {
+    compradorePBs.forEach((pb,i)=>{
+      const di = pb.fecha ? Math.floor((new Date()-new Date(pb.fecha))/86400000) : '—';
+      h += `<tr>
+        <td><span class="tracking-num">${pb.trackingNum||'—'}</span></td>
+        <td>${pb.contactName||'—'}</td>
+        <td style="font-size:12px;color:#888">${pb.busqueda||'—'}</td>
+        <td><span class="tag tag-otro" style="font-size:11px">${pb.tipo||'—'}</span></td>
+        <td><select onchange="cambiarEstadoPB(${i},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+          ${PB_ESTADOS.map(e=>`<option value="${e}" ${pb.estado===e?'selected':''}>${e}</option>`).join('')}
+        </select></td>
+        <td style="font-size:12px;color:#888">${pb.fecha?pb.fecha.slice(5).replace('-','/'):'—'}${typeof di==='number'?' ('+di+'d)':''}</td>
+        <td style="font-size:12px;color:#888">${pb.nota||'—'}</td>
+      </tr>`;
+    });
+  }
+  h += '</tbody></table></div>';
+
+  el.innerHTML = h;
+
+  // Modales
+  if(!document.getElementById('modal-comprador')){
+    const mc = document.createElement('div');
+    mc.className='overlay'; mc.id='modal-comprador';
+    mc.innerHTML=`<div class="modal" style="max-width:460px">
+      <h3 id="mc-title">Agregar comprador</h3>
+      <label class="field-label">Nombre del comprador <span class="req">*</span></label>
+      <input type="text" id="mc-nombre" placeholder="Ej: Martín López"/>
+      <label class="field-label">Tipo de propiedad buscada</label>
+      <select id="mc-tipo">${BUSQUEDA_TIPOS.map(t=>'<option>'+t+'</option>').join('')}</select>
+      <label class="field-label">Zona / descripción de búsqueda</label>
+      <input type="text" id="mc-busqueda" placeholder="Ej: 3 amb, zona norte, cerca colegio"/>
+      <label class="field-label">Presupuesto (USD)</label>
+      <input type="number" id="mc-presupuesto" placeholder="Ej: 150000"/>
+      <label class="field-label">Fecha de ingreso</label>
+      <input type="date" id="mc-fecha"/>
+      <label class="field-label">Nota</label>
+      <input type="text" id="mc-nota" placeholder="Observaciones adicionales"/>
+      <div class="modal-btns">
+        <button class="btn-sec" onclick="cerrarModalComprador()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarComprador()">Guardar</button>
+      </div>
+    </div>`;
+    mc.addEventListener('click',e=>{if(e.target===mc)cerrarModalComprador();});
+    document.body.appendChild(mc);
+
+    const mpb = document.createElement('div');
+    mpb.className='overlay'; mpb.id='modal-pb';
+    mpb.innerHTML=`<div class="modal" style="max-width:400px">
+      <h3>Agregar PreBuying</h3>
+      <label class="field-label">Contacto <span class="req">*</span></label>
+      <input type="text" id="mpb-contact" placeholder="Ej: Martín López"/>
+      <label class="field-label">Búsqueda / zona</label>
+      <input type="text" id="mpb-busqueda" placeholder="Ej: 3 amb zona norte hasta $180k"/>
+      <label class="field-label">Tipo de propiedad</label>
+      <select id="mpb-tipo">${BUSQUEDA_TIPOS.map(t=>'<option>'+t+'</option>').join('')}</select>
+      <label class="field-label">Estado</label>
+      <select id="mpb-estado">${PB_ESTADOS.map(e=>'<option>'+e+'</option>').join('')}</select>
+      <label class="field-label">Nota</label>
+      <input type="text" id="mpb-nota" placeholder="Observaciones"/>
+      <div class="modal-btns">
+        <button class="btn-sec" onclick="cerrarModalPB()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarPB()">Guardar</button>
+      </div>
+    </div>`;
+    mpb.addEventListener('click',e=>{if(e.target===mpb)cerrarModalPB();});
+    document.body.appendChild(mpb);
+  }
+}
+
+let _compEditIdx = null;
+
+function abrirModalComprador(idx){
+  _compEditIdx = idx;
+  const p = idx!==null ? compradoresProsp[idx] : null;
+  document.getElementById('mc-title').textContent = p?'Editar comprador':'Agregar comprador';
+  document.getElementById('mc-nombre').value = p?.nombre||'';
+  document.getElementById('mc-tipo').value = p?.tipo||BUSQUEDA_TIPOS[0];
+  document.getElementById('mc-busqueda').value = p?.busqueda||'';
+  document.getElementById('mc-presupuesto').value = p?.presupuesto||'';
+  document.getElementById('mc-fecha').value = p?.fechaIngreso||new Date().toISOString().split('T')[0];
+  document.getElementById('mc-nota').value = p?.nota||'';
+  document.getElementById('modal-comprador').classList.add('open');
+}
+function cerrarModalComprador(){ document.getElementById('modal-comprador').classList.remove('open'); }
+
+function guardarComprador(){
+  const nombre = document.getElementById('mc-nombre').value.trim();
+  if(!nombre) return;
+  const obj = {
+    nombre, tipo:document.getElementById('mc-tipo').value,
+    busqueda:document.getElementById('mc-busqueda').value,
+    presupuesto:document.getElementById('mc-presupuesto').value,
+    fechaIngreso:document.getElementById('mc-fecha').value,
+    nota:document.getElementById('mc-nota').value,
+    estado:'activo'
+  };
+  if(_compEditIdx!==null) compradoresProsp[_compEditIdx]={...compradoresProsp[_compEditIdx],...obj};
+  else compradoresProsp.push(obj);
+  cerrarModalComprador(); renderCompradores();
+}
+
+function cambiarEstadoComprador(idx, val){
+  if(val==='cerrado'){
+    compradoresVendidos.push({...compradoresProsp[idx], estadoFinal:'cerrado', fechaCierre:new Date().toISOString().split('T')[0]});
+    compradoresProsp.splice(idx,1);
+  } else {
+    compradoresProsp[idx].estado=val;
+  }
+  renderCompradores();
+}
+
+function abrirModalPB(){ document.getElementById('modal-pb').classList.add('open'); }
+function cerrarModalPB(){ document.getElementById('modal-pb').classList.remove('open'); }
+
+function guardarPB(){
+  const c = document.getElementById('mpb-contact').value.trim();
+  if(!c) return;
+  const num = typeof generateTrackingNum==='function' ? generateTrackingNum('PB') : 'PB-'+Date.now();
+  compradorePBs.push({
+    trackingNum:num, contactName:c,
+    busqueda:document.getElementById('mpb-busqueda').value,
+    tipo:document.getElementById('mpb-tipo').value,
+    estado:document.getElementById('mpb-estado').value,
+    fecha:new Date().toISOString().split('T')[0],
+    nota:document.getElementById('mpb-nota').value, auto:false
+  });
+  cerrarModalPB(); renderCompradores();
+}
+
+function cambiarEstadoPB(i, val){
+  compradorePBs[i].estado=val;
+  renderCompradores();
+}
+</script>
+<script>
+// ══════════════════════════════════════════════════
+//  TEAM CONSOLIDADO
+// ══════════════════════════════════════════════════
+function renderTeam(){
+  const el = document.getElementById('tab-team');
+  if(!el) return;
+
+  const nSem = Math.max(
+    typeof WEEKS!=='undefined' ? WEEKS.filter(w=>calcRV(w.num)>0).length : 1,
+    1
+  );
+
+  // ── Métricas ──
+  const rvTotal    = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>s+calcRV(w.num),0) : 0;
+  const plTotal    = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>s+(trkData[w.num]?.cart?.PL||[]).length,0) : 0;
+  const pbTotal    = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>s+(trkData[w.num]?.comp?.PB||[]).length,0) : 0;
+  const captTotal  = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>s+(trkData[w.num]?.cart?.Capt||[]).length,0) : 0;
+  const refTotal   = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>s+(trkData[w.num]?.cart?.Referidos||[]).length+(trkData[w.num]?.comp?.Referidos||[]).length,0) : 0;
+  const cierrTotal = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>s+(trkData[w.num]?.cart?.Cierres||[]).length+(trkData[w.num]?.comp?.Cierres||[]).length,0) : 0;
+  const facTotal   = typeof reservas!=='undefined' ? reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0) : 0;
+  const resAcep    = typeof reservas!=='undefined' ? reservas.filter(r=>r.estado==='Aceptada').length : 0;
+  const resPend    = typeof reservas!=='undefined' ? reservas.filter(r=>r.estado==='En negociación').length : 0;
+
+  const prom = (n) => nSem>0 ? (n/nSem).toFixed(1) : '—';
+  const fmtU = n => '$'+Number(n||0).toLocaleString('es-AR');
+
+  const semActual = typeof currentWeek==='function' ? currentWeek().num : 1;
+  const rvEsp = 18 * semActual;
+  const delta = rvTotal - rvEsp;
+  const deltaColor = delta>=0?'#3B6D11':'#A32D2D';
+  const deltaLabel = delta>=0 ? '+'+delta+' adelantado ✓' : delta+' atrasado';
+
+  // ── Card helper ──
+  const card = (label, main, sub, color='#1a1a1a', border='#e0dfd8') =>
+    `<div style="background:#fff;border:1px solid ${border};border-top:3px solid ${border};border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em">${label}</div>
+      <div style="font-size:26px;font-weight:500;color:${color};line-height:1">${main}</div>
+      <div style="font-size:11px;color:#aaa">${sub}</div>
+    </div>`;
+
+  el.innerHTML = `
+  <div style="padding:.5rem 0 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:18px;font-weight:500">Team consolidado — Dante</div>
+      <div style="font-size:13px;color:#888;margin-top:2px">${nSem} semana${nSem!==1?'s':''} con actividad registrada</div>
+    </div>
+    <div style="font-size:12px;color:${deltaColor};font-weight:500;background:${delta>=0?'#EAF3DE':'#FCEBEB'};padding:6px 14px;border-radius:20px">${deltaLabel} vs ritmo esperado</div>
+  </div>
+
+  <div style="margin-bottom:10px;font-size:12px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e0dfd8;padding-bottom:6px">Promedios semanales</div>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.25rem">
+    ${card('🟢 Verdes/sem', prom(rvTotal), 'meta: 18 · total: '+rvTotal, '#27500A', '#C0DD97')}
+    ${card('PL / sem', prom(plTotal), 'total: '+plTotal+' PreListings', '#534AB7', '#AFA9EC')}
+    ${card('PB / sem', prom(pbTotal), 'total: '+pbTotal+' PreBuyings', '#085041', '#9FE1CB')}
+    ${card('Referidos / sem', prom(refTotal), 'total: '+refTotal+' (vend.+comp.)', '#633806', '#FAC775')}
+    ${card('Cierres / sem', prom(cierrTotal), 'total: '+cierrTotal+' (vend.+comp.)', '#185FA5', '#90C4F0')}
+    ${card('Captaciones / sem', prom(captTotal), 'total: '+captTotal+' captadas', '#3B6D11', '#C0DD97')}
+  </div>
+
+  <div style="margin-bottom:10px;font-size:12px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e0dfd8;padding-bottom:6px">Facturación y reservas</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem">
+    ${card('Facturación total', fmtU(facTotal), 'cierres cobrados', '#3B6D11', '#C0DD97')}
+    ${card('Reservas aceptadas', resAcep, 'por cobrar', '#0C447C', '#90C4F0')}
+    ${card('En negociación', resPend, 'pendientes de aceptar', '#854F0B', '#FAC775')}
+  </div>
+
+  <div style="margin-bottom:10px;font-size:12px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e0dfd8;padding-bottom:6px">Próximamente — Team completo</div>
+  <div style="background:#f5f4f0;border:1px dashed #e0dfd8;border-radius:10px;padding:2rem;text-align:center;color:#aaa;font-size:13px">
+    Acá van a aparecer las métricas de cada integrante del equipo cuando conectemos los CRMs individuales
+  </div>`;
+}
+</script>
