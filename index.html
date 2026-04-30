@@ -41,6 +41,8 @@ td{padding:9px 12px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-
 .tag-almuerzo{background:#EAF3DE;color:#27500A}
 .tag-popby{background:#EAF3DE;color:#27500A}
 .tag-llamadoverde{background:#EAF3DE;color:#27500A}
+.tag-evento{background:#EAF3DE;color:#27500A}
+.tag-bajaprecio{background:#E6F1FB;color:#0C447C}
 .tag-llamada{background:#E1F5EE;color:#085041}
 .tag-cumple{background:#FBEAF0;color:#72243E}
 .tag-visita{background:#FAECE7;color:#712B13}
@@ -440,6 +442,10 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
         <option value="almuerzo">Almuerzo</option>
         <option value="popby">Pop By</option>
         <option value="llamadoverde">Llamado Verde</option>
+        <option value="evento">Evento</option>
+      </optgroup>
+      <optgroup label="✅ Cartera (suman BP en Trackeo Semanal)">
+        <option value="bajaprecio">Baja de precio</option>
       </optgroup>
       <optgroup label="Otros toques (no suman)">
         <option value="llamada">Llamada</option>
@@ -1089,8 +1095,12 @@ function saveTouch(){
     if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
       const parts=oppDate.split('-').map(Number);
       const d=new Date(parts[0],parts[1]-1,parts[2]); // local time, no timezone shift
-      const week=WEEKS.find(w=>d>=w.start&&d<=w.end);
-      console.log('Trackeo sync - oppDate:', oppDate, 'parsed d:', d.toISOString(), 'week found:', week?.num);
+      let week=WEEKS.find(w=>d>=w.start&&d<=w.end);
+      // If not found (date before week 1 or after week 52), use closest week
+      if(!week){
+        if(d<=WEEKS[0].start) week=WEEKS[0];
+        else week=WEEKS[WEEKS.length-1];
+      }
       if(week){
         // Ensure trkData structure exists for this week
         if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
@@ -1101,11 +1111,9 @@ function saveTouch(){
           trkData[week.num].cart.PL.push({n:activeContact.name,note:trackingNum+' '+oppProp,auto:false});
         }
         if(oppType==='PB'){
-          console.log('PB sync - week:', week?.num, 'date:', oppDate, 'trkData week exists:', !!trkData[week?.num], 'comp exists:', !!(trkData[week?.num]?.comp));
           if(!trkData[week.num].comp) trkData[week.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
           if(!trkData[week.num].comp.PB) trkData[week.num].comp.PB=[];
           trkData[week.num].comp.PB.push({n:activeContact.name,note:trackingNum,auto:false});
-          console.log('PB pushed! Total PB in week', week.num, ':', trkData[week.num].comp.PB.length);
         }
         if(oppType==='REF'){
           if(!trkData[week.num].cart.Referidos) trkData[week.num].cart.Referidos=[];
@@ -1115,9 +1123,22 @@ function saveTouch(){
     }
   }
 
+  // ── Sync Baja de precio → cart.BP en Trackeo Semanal ──
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='bajaprecio'){
+    const partsBP=date.split('-').map(Number);
+    const dBP=new Date(partsBP[0],partsBP[1]-1,partsBP[2]);
+    let weekBP=WEEKS.find(w=>dBP>=w.start&&dBP<=w.end);
+    if(!weekBP) weekBP=dBP<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    if(weekBP){
+      if(!trkData[weekBP.num]) trkData[weekBP.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[weekBP.num].cart.BP) trkData[weekBP.num].cart.BP=[];
+      trkData[weekBP.num].cart.BP.push({n:activeContact.name,note:'Baja de precio',auto:false});
+    }
+  }
+
   // ── Sync prospección → Trackeo Semanal ──
-  const prospTypes=['cafe','almuerzo','popby','llamadoverde'];
-  const prospMap={'cafe':'Reuniones','almuerzo':'Reuniones','popby':'Reuniones','llamadoverde':'Reuniones'};
+  const prospTypes=['cafe','almuerzo','popby','llamadoverde','evento'];
+  const prospMap={'cafe':'Reuniones','almuerzo':'Reuniones','popby':'Reuniones','llamadoverde':'Reuniones','evento':'Reuniones'};
   if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && prospTypes.includes(type)){
     const parts2=date.split('-').map(Number);
     const d=new Date(parts2[0],parts2[1]-1,parts2[2]);
@@ -1504,7 +1525,7 @@ let danteReservaEditIdx = null;
 
 const RESERVA_ESTADOS = ['En negociación','Aceptada','Cerrada','Caída'];
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const PROCEDENCIAS = ['Repetido','Referido','Eleva','Web','Pauta','Cartel','Otro'];
+const PROCEDENCIAS = ['Repetido','Referido','Eleva','Colega','Web','Pauta','Cartel','Otro'];
 
 function formatM(n){ if(!n&&n!==0)return'—'; return '$'+Number(n).toLocaleString('es-AR'); }
 function mesLabel(ym){ if(!ym)return'—'; const [y,m]=ym.split('-'); return MESES_ES[parseInt(m)-1]+' '+y; }
