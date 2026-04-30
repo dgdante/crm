@@ -43,6 +43,7 @@ td{padding:9px 12px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-
 .tag-llamadoverde{background:#EAF3DE;color:#27500A}
 .tag-evento{background:#EAF3DE;color:#27500A}
 .tag-bajaprecio{background:#E6F1FB;color:#0C447C}
+.tag-oferta{background:#E6F1FB;color:#0C447C}
 .tag-llamada{background:#E1F5EE;color:#085041}
 .tag-cumple{background:#FBEAF0;color:#72243E}
 .tag-visita{background:#FAECE7;color:#712B13}
@@ -444,7 +445,8 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
         <option value="llamadoverde">Llamado Verde</option>
         <option value="evento">Evento</option>
       </optgroup>
-      <optgroup label="✅ Cartera (suman BP en Trackeo Semanal)">
+      <optgroup label="✅ Cartera (suman en Trackeo Semanal)">
+        <option value="oferta">Oferta</option>
         <option value="bajaprecio">Baja de precio</option>
       </optgroup>
       <optgroup label="Otros toques (no suman)">
@@ -927,6 +929,7 @@ function renderTable(){
       <td style="color:${bdColor};font-size:12px">${bdLabel}</td>
       <td style="white-space:nowrap">
         <button onclick="openModal('${c.id}')" class="btn-sec" style="font-size:11px;padding:4px 9px;margin-right:4px">+ Toque</button>
+        <button onclick="abrirHistorialToques('${c.id}')" class="btn-sec" style="font-size:11px;padding:4px 9px;margin-right:4px" title="Ver y borrar toques">📋</button>
         <button onclick="openOppModal('${c.id}')" class="btn-opp" style="font-size:11px;padding:4px 9px">+ Oport.</button>
       </td>
     </tr>`;
@@ -969,6 +972,97 @@ function openModal(id){
   document.getElementById('btn-cal').disabled=true;
   document.getElementById('modal-overlay').classList.add('open');
 }
+function abrirHistorialToques(contactId){
+  const c = contacts.find(x=>x.id===contactId);
+  if(!c) return;
+
+  let modal = document.getElementById('modal-historial');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'modal-historial';
+    modal.className = 'overlay';
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+    document.body.appendChild(modal);
+  }
+
+  const renderHistorial = () => {
+    const ts = (touches[contactId]||[]).slice().reverse(); // most recent first
+    modal.innerHTML = `<div class="modal" style="max-width:460px;max-height:80vh;overflow-y:auto">
+      <h3 style="margin-bottom:4px">Historial de toques — ${c.name}</h3>
+      <div style="font-size:12px;color:#888;margin-bottom:1rem">${ts.length} toque${ts.length!==1?'s':''} registrado${ts.length!==1?'s':''}</div>
+      ${ts.length===0
+        ? '<div style="color:#aaa;text-align:center;padding:1.5rem">Sin toques registrados</div>'
+        : ts.map((t, ri)=>{
+            const realIdx = (touches[contactId]||[]).length - 1 - ri;
+            return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px;background:#f8f7f4;border-radius:8px;margin-bottom:6px;gap:8px">
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                  <span class="tag tag-${t.type}" style="font-size:11px">${t.type}</span>
+                  <span style="font-size:12px;color:#888">${t.date||'—'}</span>
+                </div>
+                ${t.note?`<div style="font-size:12px;color:#555">${t.note}</div>`:''}
+              </div>
+              <button onclick="eliminarToque('${contactId}',${realIdx})"
+                style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;flex-shrink:0">
+                Eliminar
+              </button>
+            </div>`;
+          }).join('')
+      }
+      <div style="text-align:right;margin-top:1rem">
+        <button class="btn-sec" onclick="document.getElementById('modal-historial').classList.remove('open')">Cerrar</button>
+      </div>
+    </div>`;
+    modal.classList.add('open');
+  };
+
+  renderHistorial();
+  modal._render = renderHistorial;
+  modal._contactId = contactId;
+}
+
+function eliminarToque(contactId, idx){
+  if(!confirm('¿Eliminar este toque? Si generó una oportunidad también se eliminará.')) return;
+  const t = (touches[contactId]||[])[idx];
+  if(!t) return;
+
+  // Remove touch
+  touches[contactId].splice(idx, 1);
+
+  // Remove associated opp if any (match by contactId + date)
+  const before = opps.length;
+  opps = opps.filter(o=>!(o.contactId===contactId && o.touchDate===t.date));
+  const removed = before - opps.length;
+
+  // Remove from trkData if it was a prosp/cartera type
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && t.date){
+    const parts=t.date.split('-').map(Number);
+    const d=new Date(parts[0],parts[1]-1,parts[2]);
+    let week=WEEKS.find(w=>d>=w.start&&d<=w.end);
+    if(!week) week=d<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    if(week){
+      const wNum=week.num;
+      const cName=contacts.find(x=>x.id===contactId)?.name||'';
+      const removeEntry=(arr)=>{ if(!arr) return arr; return arr.filter(e=>!(e.n===cName&&e.auto===false)); };
+      const prospTypes=['cafe','almuerzo','popby','llamadoverde','evento'];
+      if(prospTypes.includes(t.type) && trkData[wNum]?.prosp){
+        trkData[wNum].prosp.Reuniones = removeEntry(trkData[wNum].prosp.Reuniones);
+      }
+      if(t.type==='bajaprecio' && trkData[wNum]?.cart){
+        trkData[wNum].cart.BP = removeEntry(trkData[wNum].cart.BP);
+      }
+      if(t.type==='oferta' && trkData[wNum]?.cart){
+        trkData[wNum].cart.Ofertas = removeEntry(trkData[wNum].cart.Ofertas);
+      }
+    }
+  }
+
+  // Re-render
+  const modal = document.getElementById('modal-historial');
+  if(modal && modal._render) modal._render();
+  applyFilters();
+}
+
 function abrirModalOpps(contactId){
   const cOpps = contactOpps(contactId);
   const c = contacts.find(x=>x.id===contactId);
@@ -1120,6 +1214,32 @@ function saveTouch(){
           trkData[week.num].cart.Referidos.push({n:activeContact.name,note:trackingNum,auto:false});
         }
       }
+    }
+  }
+
+  // ── Sync Oferta → cart.Ofertas en Trackeo Semanal ──
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='oferta'){
+    const partsOf=date.split('-').map(Number);
+    const dOf=new Date(partsOf[0],partsOf[1]-1,partsOf[2]);
+    let weekOf=WEEKS.find(w=>dOf>=w.start&&dOf<=w.end);
+    if(!weekOf) weekOf=dOf<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    if(weekOf){
+      if(!trkData[weekOf.num]) trkData[weekOf.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[weekOf.num].cart.Ofertas) trkData[weekOf.num].cart.Ofertas=[];
+      trkData[weekOf.num].cart.Ofertas.push({n:activeContact.name,note:'Oferta',auto:false});
+    }
+  }
+
+  // ── Sync Oferta → cart.Ofertas en Trackeo Semanal ──
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='oferta'){
+    const partsOf=date.split('-').map(Number);
+    const dOf=new Date(partsOf[0],partsOf[1]-1,partsOf[2]);
+    let weekOf=WEEKS.find(w=>dOf>=w.start&&dOf<=w.end);
+    if(!weekOf) weekOf=dOf<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    if(weekOf){
+      if(!trkData[weekOf.num]) trkData[weekOf.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[weekOf.num].cart.Ofertas) trkData[weekOf.num].cart.Ofertas=[];
+      trkData[weekOf.num].cart.Ofertas.push({n:activeContact.name,note:'Oferta',auto:false});
     }
   }
 
