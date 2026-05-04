@@ -36,7 +36,10 @@ td{padding:9px 12px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px}
 .tag-llamada{background:#E1F5EE;color:#085041}
 .tag-whatsapp{background:#EAF3DE;color:#27500A}
-.tag-reunion{background:#FAEEDA;color:#633806}
+.tag-reunion{background:#EAF3DE;color:#27500A}
+.tag-prelisting{background:#EEEDFE;color:#3C3489}
+.tag-prebuying{background:#E1F5EE;color:#085041}
+.tag-referido{background:#FAEEDA;color:#633806}
 .tag-cafe{background:#EAF3DE;color:#27500A}
 .tag-almuerzo{background:#EAF3DE;color:#27500A}
 .tag-popby{background:#EAF3DE;color:#27500A}
@@ -435,27 +438,28 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
 
 <!-- MODAL: TOQUE -->
 <div class="overlay" id="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:500px">
     <h3 id="modal-title">Registrar toque</h3>
 
+    <!-- Stats del contacto -->
+    <div id="m-contact-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding:10px;background:#f8f7f4;border-radius:8px;font-size:12px"></div>
+
     <label class="field-label">Tipo de toque</label>
-    <select id="m-type">
-      <optgroup label="✅ Prospección (suman al Trackeo Semanal)">
+    <select id="m-type" onchange="onTipoTouqueChange()">
+      <optgroup label="🟢 Cuentan como verde">
         <option value="cafe">Café</option>
-        <option value="almuerzo">Almuerzo</option>
         <option value="popby">Pop By</option>
-        <option value="llamadoverde">Llamado Verde</option>
         <option value="evento">Evento</option>
-      </optgroup>
-      <optgroup label="✅ Cartera (suman en Trackeo Semanal)">
         <option value="oferta">Oferta</option>
         <option value="bajaprecio">Baja de precio</option>
-        <option value="cierrevendedor">Cierre vendedor</option>
-        <option value="cierrecomprador">Cierre comprador</option>
+        <option value="prelisting">PreListing</option>
+        <option value="prebuying">PreBuying</option>
+        <option value="llamadoverde">Llamado Verde</option>
+        <option value="referido">Referido</option>
       </optgroup>
-      <optgroup label="Otros toques (no suman)">
-        <option value="llamada">Llamada</option>
+      <optgroup label="No suman a las verdes">
         <option value="whatsapp">WhatsApp</option>
+        <option value="llamada">Llamada</option>
         <option value="cumple">Saludo de cumpleaños</option>
         <option value="otro">Otro</option>
       </optgroup>
@@ -464,38 +468,11 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
     <label class="field-label">Fecha del toque</label>
     <input type="date" id="m-date"/>
 
-    <label class="field-label">Nota (opcional)</label>
-    <textarea id="m-note" placeholder="Ej: Interesado en zona norte, presupuesto $180k..."></textarea>
+    <!-- Campos extra según tipo -->
+    <div id="m-extra-fields"></div>
 
-    <!-- BLOQUE OPORTUNIDAD -->
-    <div class="opp-block">
-      <div class="opp-block-title">¿Este toque generó una oportunidad?</div>
-      <div class="opp-block-sub">Podés registrarla ahora o después desde el historial del contacto</div>
-      <label class="field-label">Resultado del toque</label>
-      <select id="m-opp-type" onchange="toggleOppFields()">
-        <option value="">Sin resultado por ahora</option>
-        <option value="PL">PreListing — posible captación</option>
-        <option value="PB">PreBuying — posible compra</option>
-        <option value="REF">Referido — nuevo contacto</option>
-      </select>
-      <div id="opp-fields" style="display:none">
-        <label class="field-label">Fecha en que surgió la oportunidad</label>
-        <input type="date" id="m-opp-date"/>
-        <label class="field-label">Propiedad / dirección involucrada</label>
-        <input type="text" id="m-opp-prop" placeholder="Ej: Calle 13 N°456, La Plata"/>
-        <label class="field-label">Estado inicial</label>
-        <select id="m-opp-status">
-          <option value="activo">Activo</option>
-          <option value="negociacion">En negociación</option>
-          <option value="cerrado">Cerrado</option>
-          <option value="caido">Caído</option>
-        </select>
-        <div class="preview-track">
-          <div class="preview-track-label">Número de trackeo generado automáticamente</div>
-          <div class="tracking-num" id="preview-tracking">—</div>
-        </div>
-      </div>
-    </div>
+    <label class="field-label">Nota (opcional)</label>
+    <textarea id="m-note" placeholder="Observaciones..."></textarea>
 
     <!-- BLOQUE CALENDAR -->
     <div class="cal-block">
@@ -963,18 +940,76 @@ function updateOppPreview(){
 }
 
 function openModal(id){
-  activeId=id;activeContact=contacts.find(x=>x.id===id);
+  activeId=id; activeContact=contacts.find(x=>x.id===id);
   document.getElementById('modal-title').textContent='Registrar toque — '+activeContact.name;
   document.getElementById('m-date').value=new Date().toISOString().split('T')[0];
   document.getElementById('m-note').value='';
-  document.getElementById('m-type').value='reunion';
-  document.getElementById('m-opp-type').value='';
-  document.getElementById('opp-fields').style.display='none';
+  document.getElementById('m-type').value='cafe';
+  document.getElementById('m-extra-fields').innerHTML='';
   document.getElementById('cal-name').value=activeContact.name;
   document.getElementById('cal-datetime').value='';
   document.getElementById('cal-place').value='';
   document.getElementById('btn-cal').disabled=true;
+
+  // Show contact stats
+  const ts = touches[id]||[];
+  const verdes = ['cafe','popby','evento','oferta','bajaprecio','prelisting','prebuying','llamadoverde','referido'];
+  const nVerdes = ts.filter(t=>verdes.includes(t.type)).length;
+  const nPL = ts.filter(t=>t.type==='prelisting').length;
+  const nPB = ts.filter(t=>t.type==='prebuying').length;
+  const nRef = ts.filter(t=>t.type==='referido').length;
+  const nCierres = ts.filter(t=>t.type==='cierrevendedor'||t.type==='cierrecomprador').length;
+  const statsEl = document.getElementById('m-contact-stats');
+  if(statsEl) statsEl.innerHTML = [
+    {label:'🟢 Verdes', val:nVerdes},
+    {label:'PL + PB', val:nPL+nPB},
+    {label:'Referidos', val:nRef},
+    {label:'Cierres', val:nCierres},
+  ].map(s=>`<div style="text-align:center;flex:1"><div style="font-size:18px;font-weight:500">${s.val}</div><div style="color:#888;font-size:10px">${s.label}</div></div>`).join('');
+
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+function onTipoTouqueChange(){
+  const type = document.getElementById('m-type').value;
+  const el = document.getElementById('m-extra-fields');
+  el.innerHTML = '';
+
+  if(type==='prelisting'){
+    el.innerHTML = `
+      <label class="field-label">Dirección de la propiedad (opcional)</label>
+      <input type="text" id="ex-direccion" placeholder="Ej: Calle 13 N°456"/>
+      <label class="field-label">Valor del cliente (USD, opcional)</label>
+      <input type="number" id="ex-valor" placeholder="Ej: 120000"/>`;
+  } else if(type==='prebuying'){
+    el.innerHTML = `
+      <label class="field-label">Búsqueda (opcional)</label>
+      <input type="text" id="ex-busqueda" placeholder="Ej: 3 amb zona norte hasta $180k"/>
+      <label class="field-label">Presupuesto (USD, opcional)</label>
+      <input type="number" id="ex-presupuesto" placeholder="Ej: 180000"/>`;
+  } else if(type==='referido'){
+    el.innerHTML = `
+      <label class="field-label">Tipo de referido</label>
+      <select id="ex-ref-tipo">
+        <option value="busqueda">Referido de búsqueda (PB)</option>
+        <option value="venta">Referido de venta (PL)</option>
+      </select>
+      <label class="field-label">Nombre del cliente referido</label>
+      <input type="text" id="ex-ref-nombre" placeholder="Ej: Martín López"/>`;
+  } else if(type==='oferta'){
+    el.innerHTML = `
+      <label class="field-label">Punta</label>
+      <select id="of-punta">
+        <option value="Vendedora">Vendedora</option>
+        <option value="Compradora">Compradora</option>
+      </select>
+      <label class="field-label">Precio ofertado (USD)</label>
+      <input type="number" id="of-precio" placeholder="Ej: 150000"/>
+      <label class="field-label">Comisión (USD)</label>
+      <input type="number" id="of-comision" placeholder="Ej: 6000"/>
+      <label class="field-label">Al bolsillo (USD)</label>
+      <input type="number" id="of-bolsillo" placeholder="Ej: 4500"/>`;
+  }
 }
 function abrirHistorialToques(contactId){
   const c = contacts.find(x=>x.id===contactId);
@@ -1177,132 +1212,98 @@ function saveTouch(){
   const note=document.getElementById('m-note').value;
   if(!date)return;
   if(!touches[activeId])touches[activeId]=[];
-  touches[activeId].push({type,date,note});
 
-  const oppType=document.getElementById('m-opp-type').value;
-  if(oppType){
-    const oppDate=document.getElementById('m-opp-date').value||date;
-    const oppProp=document.getElementById('m-opp-prop').value;
-    const oppStatus=document.getElementById('m-opp-status').value;
-    const trackingNum=generateTrackingNum(oppType);
-    const opp={trackingNum,type:oppType,contactId:activeId,contactName:activeContact.name,property:oppProp,date:oppDate,status:oppStatus,touchType:type,touchDate:date};
-    opps.push(opp);
+  const touchObj={type,date,note};
+  const cName=activeContact.name;
 
-    // ── Sync PL → Cartera PreListings ──
-    if(oppType==='PL' && typeof carteraPLs!=='undefined'){
-      if(!carteraPLs.find(pl=>pl.trackingNum===trackingNum)){
-        carteraPLs.push({trackingNum,contactName:activeContact.name,direccion:oppProp||'',tipo:'',estado:'Pendiente',fecha:oppDate,nota:'',auto:false});
+  // Helper: get week for date
+  const getWeek=(d)=>{
+    const parts=d.split('-').map(Number);
+    const dt=new Date(parts[0],parts[1]-1,parts[2]);
+    let w=typeof WEEKS!=='undefined'?WEEKS.find(x=>dt>=x.start&&dt<=x.end):null;
+    if(!w&&typeof WEEKS!=='undefined') w=dt<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    return w;
+  };
+  const ensureWeek=(wNum)=>{
+    if(!trkData[wNum]) trkData[wNum]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+    if(!trkData[wNum].cart) trkData[wNum].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
+    if(!trkData[wNum].comp) trkData[wNum].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
+    if(!trkData[wNum].prosp) trkData[wNum].prosp={Reuniones:[]};
+  };
+  const week=getWeek(date);
+  const wNum=week?week.num:1;
+  if(typeof trkData!=='undefined') ensureWeek(wNum);
+
+  // ── Handle each type ──
+  if(type==='prelisting'){
+    const dir=document.getElementById('ex-direccion')?.value||'';
+    const val=document.getElementById('ex-valor')?.value||'';
+    touchObj.note=note||(dir?'Dir: '+dir:'')+(val?' · $'+val:'');
+    const trackingNum=generateTrackingNum('PL');
+    touchObj.trackingNum=trackingNum;
+    opps.push({trackingNum,type:'PL',contactId:activeId,contactName:cName,property:dir,date,status:'activo',touchType:type,touchDate:date});
+    if(typeof carteraPLs!=='undefined'&&!carteraPLs.find(pl=>pl.trackingNum===trackingNum)){
+      carteraPLs.push({trackingNum,contactName:cName,direccion:dir,tipo:'',estado:'Pendiente',fecha:date,nota:'',auto:false});
+    }
+    if(typeof trkData!=='undefined'){
+      if(!trkData[wNum].cart.PL) trkData[wNum].cart.PL=[];
+      trkData[wNum].cart.PL.push({n:cName,note:trackingNum+(dir?' · '+dir:''),auto:false});
+    }
+
+  } else if(type==='prebuying'){
+    const busqueda=document.getElementById('ex-busqueda')?.value||'';
+    const presup=document.getElementById('ex-presupuesto')?.value||'';
+    touchObj.note=note||busqueda+(presup?' · $'+presup:'');
+    const trackingNum=generateTrackingNum('PB');
+    touchObj.trackingNum=trackingNum;
+    opps.push({trackingNum,type:'PB',contactId:activeId,contactName:cName,property:busqueda,date,status:'activo',touchType:type,touchDate:date});
+    if(typeof trkData!=='undefined'){
+      if(!trkData[wNum].comp.PB) trkData[wNum].comp.PB=[];
+      trkData[wNum].comp.PB.push({n:cName,note:trackingNum+(busqueda?' · '+busqueda:''),auto:false});
+    }
+
+  } else if(type==='referido'){
+    const refTipo=document.getElementById('ex-ref-tipo')?.value||'busqueda';
+    const refNombre=document.getElementById('ex-ref-nombre')?.value||'';
+    touchObj.note=note||'Ref: '+refNombre+(refTipo==='venta'?' (venta)':' (búsqueda)');
+    const trackingNum=generateTrackingNum('REF');
+    touchObj.trackingNum=trackingNum;
+    opps.push({trackingNum,type:'REF',contactId:activeId,contactName:cName,property:refNombre,date,status:'activo',touchType:type,touchDate:date});
+    if(typeof trkData!=='undefined'){
+      const refField=refTipo==='venta'?'cart':'comp';
+      if(!trkData[wNum][refField].Referidos) trkData[wNum][refField].Referidos=[];
+      trkData[wNum][refField].Referidos.push({n:cName,note:'Ref: '+refNombre,auto:false});
+    }
+
+  } else if(type==='oferta'){
+    const ofPunta=document.getElementById('of-punta')?.value||'Vendedora';
+    const ofComision=document.getElementById('of-comision')?.value||'';
+    const ofPrecio=document.getElementById('of-precio')?.value||'';
+    const ofBolsillo=document.getElementById('of-bolsillo')?.value||0;
+    touchObj.note=note||'Oferta '+ofPunta+(ofPrecio?' · $'+ofPrecio:'');
+    if(ofComision){
+      const ym=date.slice(0,7);
+      reservas.push({mesToma:ym,mesCierre:ym,cliente:cName,punta:ofPunta,codigo:'',procedencia:'Otro',oferta:Number(ofPrecio),comision:Number(ofComision),bolsillo:Number(ofBolsillo),estado:'En negociación',_contactId:activeId});
+      if(typeof syncReservasToTrackeo==='function') syncReservasToTrackeo();
+    } else {
+      if(typeof trkData!=='undefined'){
+        const section=ofPunta==='Vendedora'?'cart':'comp';
+        if(!trkData[wNum][section].Ofertas) trkData[wNum][section].Ofertas=[];
+        trkData[wNum][section].Ofertas.push({n:cName,note:'Oferta',auto:false});
       }
     }
-
-    // ── Sync PL/PB → Trackeo Semanal (trkData) ──
-    if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
-      const parts=oppDate.split('-').map(Number);
-      const d=new Date(parts[0],parts[1]-1,parts[2]); // local time, no timezone shift
-      let week=WEEKS.find(w=>d>=w.start&&d<=w.end);
-      // If not found (date before week 1 or after week 52), use closest week
-      if(!week){
-        if(d<=WEEKS[0].start) week=WEEKS[0];
-        else week=WEEKS[WEEKS.length-1];
-      }
-      if(week){
-        // Ensure trkData structure exists for this week
-        if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-        if(!trkData[week.num].cart) trkData[week.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
-        if(!trkData[week.num].comp) trkData[week.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
-        if(oppType==='PL'){
-          if(!trkData[week.num].cart.PL) trkData[week.num].cart.PL=[];
-          trkData[week.num].cart.PL.push({n:activeContact.name,note:trackingNum+' '+oppProp,auto:false});
-        }
-        if(oppType==='PB'){
-          if(!trkData[week.num].comp) trkData[week.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
-          if(!trkData[week.num].comp.PB) trkData[week.num].comp.PB=[];
-          trkData[week.num].comp.PB.push({n:activeContact.name,note:trackingNum,auto:false});
-        }
-        if(oppType==='REF'){
-          if(!trkData[week.num].cart.Referidos) trkData[week.num].cart.Referidos=[];
-          trkData[week.num].cart.Referidos.push({n:activeContact.name,note:trackingNum,auto:false});
-        }
-      }
-    }
   }
 
-  // ── Sync Oferta → cart.Ofertas en Trackeo Semanal ──
-  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='oferta'){
-    const partsOf=date.split('-').map(Number);
-    const dOf=new Date(partsOf[0],partsOf[1]-1,partsOf[2]);
-    let weekOf=WEEKS.find(w=>dOf>=w.start&&dOf<=w.end);
-    if(!weekOf) weekOf=dOf<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
-    if(weekOf){
-      if(!trkData[weekOf.num]) trkData[weekOf.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-      if(!trkData[weekOf.num].cart.Ofertas) trkData[weekOf.num].cart.Ofertas=[];
-      trkData[weekOf.num].cart.Ofertas.push({n:activeContact.name,note:'Oferta',auto:false});
-    }
-  }
+  touches[activeId].push(touchObj);
 
-  // ── Sync Oferta → cart.Ofertas en Trackeo Semanal ──
-  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='oferta'){
-    const partsOf=date.split('-').map(Number);
-    const dOf=new Date(partsOf[0],partsOf[1]-1,partsOf[2]);
-    let weekOf=WEEKS.find(w=>dOf>=w.start&&dOf<=w.end);
-    if(!weekOf) weekOf=dOf<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
-    if(weekOf){
-      if(!trkData[weekOf.num]) trkData[weekOf.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-      if(!trkData[weekOf.num].cart.Ofertas) trkData[weekOf.num].cart.Ofertas=[];
-      trkData[weekOf.num].cart.Ofertas.push({n:activeContact.name,note:'Oferta',auto:false});
-    }
-  }
-
-  // ── Sync Baja de precio → cart.BP en Trackeo Semanal ──
-  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='bajaprecio'){
-    const partsBP=date.split('-').map(Number);
-    const dBP=new Date(partsBP[0],partsBP[1]-1,partsBP[2]);
-    let weekBP=WEEKS.find(w=>dBP>=w.start&&dBP<=w.end);
-    if(!weekBP) weekBP=dBP<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
-    if(weekBP){
-      if(!trkData[weekBP.num]) trkData[weekBP.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-      if(!trkData[weekBP.num].cart.BP) trkData[weekBP.num].cart.BP=[];
-      trkData[weekBP.num].cart.BP.push({n:activeContact.name,note:'Baja de precio',auto:false});
-    }
-  }
-
-  // ── Sync Cierre vendedor → cart.Cierres en Trackeo Semanal ──
-  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='cierrevendedor'){
-    const pCV=date.split('-').map(Number);
-    const dCV=new Date(pCV[0],pCV[1]-1,pCV[2]);
-    let wCV=WEEKS.find(w=>dCV>=w.start&&dCV<=w.end);
-    if(!wCV) wCV=dCV<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
-    if(wCV){
-      if(!trkData[wCV.num]) trkData[wCV.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-      if(!trkData[wCV.num].cart.Cierres) trkData[wCV.num].cart.Cierres=[];
-      trkData[wCV.num].cart.Cierres.push({n:activeContact.name,note:'Cierre vendedor',auto:false});
-    }
-  }
-
-  // ── Sync Cierre comprador → comp.Cierres en Trackeo Semanal ──
-  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='cierrecomprador'){
-    const pCC=date.split('-').map(Number);
-    const dCC=new Date(pCC[0],pCC[1]-1,pCC[2]);
-    let wCC=WEEKS.find(w=>dCC>=w.start&&dCC<=w.end);
-    if(!wCC) wCC=dCC<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
-    if(wCC){
-      if(!trkData[wCC.num]) trkData[wCC.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-      if(!trkData[wCC.num].comp.Cierres) trkData[wCC.num].comp.Cierres=[];
-      trkData[wCC.num].comp.Cierres.push({n:activeContact.name,note:'Cierre comprador',auto:false});
-    }
-  }
-
-  // ── Sync prospección → Trackeo Semanal ──
-  const prospTypes=['cafe','almuerzo','popby','llamadoverde','evento'];
-  const prospMap={'cafe':'Reuniones','almuerzo':'Reuniones','popby':'Reuniones','llamadoverde':'Reuniones','evento':'Reuniones'};
-  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && prospTypes.includes(type)){
-    const parts2=date.split('-').map(Number);
-    const d=new Date(parts2[0],parts2[1]-1,parts2[2]);
-    const week=WEEKS.find(w=>d>=w.start&&d<=w.end);
-    if(week){
-      const trkField=prospMap[type]||'Reuniones';
-      if(!trkData[week.num].prosp[trkField]) trkData[week.num].prosp[trkField]=[];
-      trkData[week.num].prosp[trkField].push({n:activeContact.name,note:type,auto:false});
+  // ── Sync prospección toques → Trackeo Semanal ──
+  if(typeof trkData!=='undefined'){
+    if(type==='bajaprecio'){
+      if(!trkData[wNum].cart.BP) trkData[wNum].cart.BP=[];
+      trkData[wNum].cart.BP.push({n:cName,note:'Baja de precio',auto:false});
+    } else if(['cafe','popby','evento','llamadoverde'].includes(type)){
+      if(!trkData[wNum].prosp.Reuniones) trkData[wNum].prosp.Reuniones=[];
+      trkData[wNum].prosp.Reuniones.push({n:cName,note:type,auto:false});
     }
   }
 
@@ -2001,8 +2002,14 @@ function renderDante(){
       <input type="month" id="mr-mestoma"/>
       <label class="field-label">Mes de cierre <span class="req">*</span></label>
       <input type="month" id="mr-mescierre"/>
-      <label class="field-label">Nombre del cliente <span class="req">*</span></label>
-      <input type="text" id="mr-cliente" placeholder="Ej: Martín López"/>
+      <label class="field-label">Cliente <span class="req">*</span></label>
+      <div style="position:relative">
+        <input type="text" id="mr-cliente" placeholder="Escribí para buscar..." autocomplete="off"
+          oninput="buscarClienteReserva(this.value)"
+          style="width:100%"/>
+        <div id="mr-cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e0dfd8;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:999;max-height:180px;overflow-y:auto"></div>
+      </div>
+      <input type="hidden" id="mr-cliente-id"/>
       <label class="field-label">Punta <span class="req">*</span></label>
       <select id="mr-punta" onchange="toggleCodigoField()">
         <option value="Vendedora">Vendedora</option>
@@ -2162,6 +2169,27 @@ function abrirModalReserva(idx){
 
 function cerrarModalReserva(){ document.getElementById('modal-reserva').classList.remove('open'); }
 
+function buscarClienteReserva(q){
+  const dd = document.getElementById('mr-cliente-dropdown');
+  if(!q || q.length < 2){ dd.style.display='none'; return; }
+  const matches = contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  if(!matches.length){ dd.style.display='none'; return; }
+  dd.innerHTML = matches.map(c=>`
+    <div onclick="seleccionarClienteReserva('${c.id}','${c.name.replace(/'/g,"\'")}')"
+      style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0efe9"
+      onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background=''">
+      <span style="font-weight:500">${c.name}</span>
+      <span style="font-size:11px;color:#aaa;margin-left:6px">${tiers[c.id]||'B'}</span>
+    </div>`).join('');
+  dd.style.display='block';
+}
+
+function seleccionarClienteReserva(id, name){
+  document.getElementById('mr-cliente').value = name;
+  document.getElementById('mr-cliente-id').value = id;
+  document.getElementById('mr-cliente-dropdown').style.display = 'none';
+}
+
 function guardarReserva(){
   const cliente=document.getElementById('mr-cliente').value.trim();
   const oferta=document.getElementById('mr-oferta').value;
@@ -2185,8 +2213,20 @@ function guardarReserva(){
   };
   const isNew = danteReservaEditIdx===null;
   const prevEstado = isNew ? null : reservas[danteReservaEditIdx]?.estado;
+  const clienteId = document.getElementById('mr-cliente-id')?.value || null;
   if(danteReservaEditIdx!==null) reservas[danteReservaEditIdx]={...reservas[danteReservaEditIdx],...obj};
   else reservas.push(obj);
+
+  // ── Auto-register touch on the contact ──
+  if(clienteId && isNew){
+    if(!touches[clienteId]) touches[clienteId]=[];
+    touches[clienteId].push({type:'oferta', date:obj.mesToma+'-01', note:'Oferta '+obj.punta+' desde Facturación'});
+  }
+  // On closing: register cierre touch
+  if(clienteId && obj.estado==='Cerrada' && prevEstado!=='Cerrada'){
+    if(!touches[clienteId]) touches[clienteId]=[];
+    touches[clienteId].push({type: obj.punta==='Vendedora'?'cierrevendedor':'cierrecomprador', date:obj.mesCierre+'-01', note:'Cierre desde Facturación'});
+  }
 
   // ── Sync → Trackeo Semanal ──
   if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
