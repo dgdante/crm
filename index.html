@@ -44,6 +44,8 @@ td{padding:9px 12px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-
 .tag-evento{background:#EAF3DE;color:#27500A}
 .tag-bajaprecio{background:#E6F1FB;color:#0C447C}
 .tag-oferta{background:#E6F1FB;color:#0C447C}
+.tag-cierrevendedor{background:#EAF3DE;color:#3B6D11}
+.tag-cierrecomprador{background:#EAF3DE;color:#085041}
 .tag-llamada{background:#E1F5EE;color:#085041}
 .tag-cumple{background:#FBEAF0;color:#72243E}
 .tag-visita{background:#FAECE7;color:#712B13}
@@ -448,6 +450,8 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
       <optgroup label="✅ Cartera (suman en Trackeo Semanal)">
         <option value="oferta">Oferta</option>
         <option value="bajaprecio">Baja de precio</option>
+        <option value="cierrevendedor">Cierre vendedor</option>
+        <option value="cierrecomprador">Cierre comprador</option>
       </optgroup>
       <optgroup label="Otros toques (no suman)">
         <option value="llamada">Llamada</option>
@@ -1054,6 +1058,12 @@ function eliminarToque(contactId, idx){
       if(t.type==='oferta' && trkData[wNum]?.cart){
         trkData[wNum].cart.Ofertas = removeEntry(trkData[wNum].cart.Ofertas);
       }
+      if(t.type==='cierrevendedor' && trkData[wNum]?.cart){
+        trkData[wNum].cart.Cierres = removeEntry(trkData[wNum].cart.Cierres);
+      }
+      if(t.type==='cierrecomprador' && trkData[wNum]?.comp){
+        trkData[wNum].comp.Cierres = removeEntry(trkData[wNum].comp.Cierres);
+      }
     }
   }
 
@@ -1253,6 +1263,32 @@ function saveTouch(){
       if(!trkData[weekBP.num]) trkData[weekBP.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
       if(!trkData[weekBP.num].cart.BP) trkData[weekBP.num].cart.BP=[];
       trkData[weekBP.num].cart.BP.push({n:activeContact.name,note:'Baja de precio',auto:false});
+    }
+  }
+
+  // ── Sync Cierre vendedor → cart.Cierres en Trackeo Semanal ──
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='cierrevendedor'){
+    const pCV=date.split('-').map(Number);
+    const dCV=new Date(pCV[0],pCV[1]-1,pCV[2]);
+    let wCV=WEEKS.find(w=>dCV>=w.start&&dCV<=w.end);
+    if(!wCV) wCV=dCV<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    if(wCV){
+      if(!trkData[wCV.num]) trkData[wCV.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[wCV.num].cart.Cierres) trkData[wCV.num].cart.Cierres=[];
+      trkData[wCV.num].cart.Cierres.push({n:activeContact.name,note:'Cierre vendedor',auto:false});
+    }
+  }
+
+  // ── Sync Cierre comprador → comp.Cierres en Trackeo Semanal ──
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined' && type==='cierrecomprador'){
+    const pCC=date.split('-').map(Number);
+    const dCC=new Date(pCC[0],pCC[1]-1,pCC[2]);
+    let wCC=WEEKS.find(w=>dCC>=w.start&&dCC<=w.end);
+    if(!wCC) wCC=dCC<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    if(wCC){
+      if(!trkData[wCC.num]) trkData[wCC.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[wCC.num].comp.Cierres) trkData[wCC.num].comp.Cierres=[];
+      trkData[wCC.num].comp.Cierres.push({n:activeContact.name,note:'Cierre comprador',auto:false});
     }
   }
 
@@ -1853,6 +1889,15 @@ function renderDante(){
 
   // ── Tabla por mes ──
   // Puntas KPI
+  // Days since last offer
+  const allOfertas = reservas.filter(r=>r.mesToma).sort((a,b)=>b.mesToma.localeCompare(a.mesToma));
+  const lastOferta = allOfertas[0];
+  const diasDesdeOferta = lastOferta ? (() => {
+    const d = new Date(lastOferta.mesToma + '-01');
+    return Math.floor((new Date() - d) / 86400000);
+  })() : null;
+  const diasColor = diasDesdeOferta===null?'#aaa':diasDesdeOferta<=30?'#3B6D11':diasDesdeOferta<=60?'#854F0B':'#A32D2D';
+
   h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">
     <div class="stat-card" style="border-left:3px solid #185FA5">
       <div class="stat-label">Puntas cerradas</div>
@@ -1866,6 +1911,11 @@ function renderDante(){
     <div class="stat-card" style="border-left:3px solid #534AB7">
       <div class="stat-label">Punta compradora</div>
       <div class="stat-val" style="color:#534AB7">${reservas.filter(r=>r.estado==='Cerrada'&&r.punta==='Compradora').length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Días desde última oferta</div>
+      <div class="stat-val">${diasDesdeOferta!==null?diasDesdeOferta:'—'}</div>
+      <div class="stat-sub">${lastOferta?'Última: '+lastOferta.mesToma:'Sin ofertas'}</div>
     </div>
   </div>`;
 
