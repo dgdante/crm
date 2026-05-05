@@ -2200,8 +2200,10 @@ function renderDante(){
   renderDanteChart(mesesActivos);
 
   // Modal
-  if(!document.getElementById('modal-reserva')){
-    const mr=document.createElement('div');mr.className='overlay';mr.id='modal-reserva';
+  let _existingMR=document.getElementById('modal-reserva');
+  if(_existingMR) _existingMR.remove();
+  const mr=document.createElement('div');mr.className='overlay';mr.id='modal-reserva';
+  if(true){
     mr.innerHTML=`<div class="modal" style="max-width:480px">
       <h3 id="mr-title">Nueva reserva</h3>
       <label class="field-label">Mes de toma de reserva <span class="req">*</span></label>
