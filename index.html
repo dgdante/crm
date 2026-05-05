@@ -455,9 +455,9 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
         <option value="prelisting">PreListing</option>
         <option value="prebuying">PreBuying</option>
         <option value="llamadoverde">Llamado Verde</option>
-        <option value="referido">Referido</option>
       </optgroup>
       <optgroup label="No suman a las verdes">
+        <option value="referido">Referido</option>
         <option value="whatsapp">WhatsApp</option>
         <option value="llamada">Llamada</option>
         <option value="cumple">Saludo de cumpleaños</option>
@@ -970,6 +970,21 @@ function openModal(id){
   document.getElementById('modal-overlay').classList.add('open');
 }
 
+function autoFillOfertaPrecio(){
+  const sel = document.getElementById('of-prop-cartera');
+  if(!sel || !sel.value) return;
+  const p = carteraProps[parseInt(sel.value)];
+  if(!p) return;
+  const precioEl = document.getElementById('of-precio');
+  if(precioEl && p.precio) precioEl.value = p.precio;
+}
+
+function autoFillBolsilloToque(){
+  const com = Number(document.getElementById('of-comision')?.value)||0;
+  const bol = document.getElementById('of-bolsillo');
+  if(bol && com > 0) bol.value = Math.round(com * 0.75);
+}
+
 function onTipoTouqueChange(){
   const type = document.getElementById('m-type').value;
   const el = document.getElementById('m-extra-fields');
@@ -997,18 +1012,29 @@ function onTipoTouqueChange(){
       <label class="field-label">Nombre del cliente referido</label>
       <input type="text" id="ex-ref-nombre" placeholder="Ej: Martín López"/>`;
   } else if(type==='oferta'){
+    // Build property options from cartera
+    const propOpts = (typeof carteraProps!=='undefined' ? carteraProps : [])
+      .filter(p=>p.estadoCartera!=='Vendida')
+      .map((p,i)=>'<option value="'+i+'">'+p.direccion+(p.precio?' · $'+Number(p.precio).toLocaleString('es-AR'):'')+' ('+p.tipo+')'+'</option>')
+      .join('');
+
     el.innerHTML = `
       <label class="field-label">Punta</label>
       <select id="of-punta">
         <option value="Vendedora">Vendedora</option>
         <option value="Compradora">Compradora</option>
       </select>
+      <label class="field-label">Propiedad de cartera (opcional)</label>
+      <select id="of-prop-cartera" onchange="autoFillOfertaPrecio()">
+        <option value="">— Sin seleccionar —</option>
+        ${propOpts}
+      </select>
       <label class="field-label">Precio ofertado (USD)</label>
       <input type="number" id="of-precio" placeholder="Ej: 150000"/>
       <label class="field-label">Comisión (USD)</label>
-      <input type="number" id="of-comision" placeholder="Ej: 6000"/>
+      <input type="number" id="of-comision" placeholder="Ej: 6000" oninput="autoFillBolsilloToque()"/>
       <label class="field-label">Al bolsillo (USD)</label>
-      <input type="number" id="of-bolsillo" placeholder="Ej: 4500"/>`;
+      <input type="number" id="of-bolsillo" placeholder="75% automático"/>`;
   }
 
   // ── Campo de inversión para todos los toques verdes simples ──
@@ -1112,6 +1138,21 @@ function eliminarToque(contactId, idx){
       }
       if(t.type==='oferta' && trkData[wNum]?.cart){
         trkData[wNum].cart.Ofertas = removeEntry(trkData[wNum].cart.Ofertas);
+      }
+      if(t.type==='oferta' && trkData[wNum]?.comp){
+        trkData[wNum].comp.Ofertas = removeEntry(trkData[wNum].comp.Ofertas);
+      }
+      if(t.type==='prelisting' && trkData[wNum]?.cart){
+        trkData[wNum].cart.PL = removeEntry(trkData[wNum].cart.PL);
+      }
+      if(t.type==='prebuying' && trkData[wNum]?.comp){
+        trkData[wNum].comp.PB = removeEntry(trkData[wNum].comp.PB);
+      }
+      if(t.type==='referido' && trkData[wNum]?.cart){
+        trkData[wNum].cart.Referidos = removeEntry(trkData[wNum].cart.Referidos);
+      }
+      if(t.type==='referido' && trkData[wNum]?.comp){
+        trkData[wNum].comp.Referidos = removeEntry(trkData[wNum].comp.Referidos);
       }
       if(t.type==='cierrevendedor' && trkData[wNum]?.cart){
         trkData[wNum].cart.Cierres = removeEntry(trkData[wNum].cart.Cierres);
@@ -1807,6 +1848,8 @@ function cambiarEstadoPL(i, val){
     if(confirm('¿Agregar "'+pl.contactName+'" a la Cartera activa?')){
       carteraProps.push({direccion:pl.direccion,tipo:pl.tipo,duenio:pl.contactName,precio:'',tasacion:'',esEleva:false,fechaPublicacion:new Date().toISOString().split('T')[0],ultimaVisita:'',ultimaBP:'',estado:'activa',estadoCartera:'Captada'});
     }
+    // Remove from PreListings registro — ya está en Cartera
+    carteraPLs.splice(i, 1);
   }
   renderCartera();
 }
