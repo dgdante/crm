@@ -1848,6 +1848,14 @@ function cambiarEstadoPL(i, val){
     if(confirm('¿Agregar "'+pl.contactName+'" a la Cartera activa?')){
       carteraProps.push({direccion:pl.direccion,tipo:pl.tipo,duenio:pl.contactName,precio:'',tasacion:'',esEleva:false,fechaPublicacion:new Date().toISOString().split('T')[0],ultimaVisita:'',ultimaBP:'',estado:'activa',estadoCartera:'Captada'});
     }
+    // Sync → Trackeo Semanal Captaciones
+    if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+      const now=new Date();
+      let week=WEEKS.find(w=>now>=w.start&&now<=w.end)||WEEKS[WEEKS.length-1];
+      if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[week.num].cart.Capt) trkData[week.num].cart.Capt=[];
+      trkData[week.num].cart.Capt.push({n:pl.contactName,note:pl.direccion||pl.trackingNum||'',auto:false});
+    }
     // Remove from PreListings registro — ya está en Cartera
     carteraPLs.splice(i, 1);
   }
@@ -1984,7 +1992,10 @@ function renderDante(){
   h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
     <div><div style="font-size:18px;font-weight:500">Dante Reservas</div>
     <div style="font-size:13px;color:#888;margin-top:2px">Reservas, facturación y seguimiento de operaciones</div></div>
-    <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
+      <button class="btn-sec" style="font-size:12px;padding:7px 12px" onclick="debugMes()">🔍 Debug mes</button>
+    </div>
   </div>`;
 
   // Barra objetivo anual
@@ -2344,6 +2355,19 @@ function toggleCodigoField(){
 function calcularComision(){
   const oferta=Number(document.getElementById('mr-oferta').value)||0;
   document.getElementById('mr-comision').value=Math.round(oferta*0.03)||'';
+}
+
+function debugMes(){
+  const ym = prompt('¿Qué mes querés inspeccionar? (ej: 2026-03)', '2026-03');
+  if(!ym) return;
+  const cerradas = reservas.filter(r=>r.mesCierre===ym && r.estado==='Cerrada');
+  const tomadas = reservas.filter(r=>r.mesToma===ym);
+  let msg = '=== CERRADAS (mesCierre='+ym+') ===\n';
+  cerradas.forEach((r,i)=>msg+=i+1+'. '+r.cliente+' · $'+r.comision+' · estado:'+r.estado+'\n');
+  msg += '\nTOTAL CERRADAS: $'+cerradas.reduce((s,r)=>s+(Number(r.comision)||0),0);
+  msg += '\n\n=== TOMADAS (mesToma='+ym+') ===\n';
+  tomadas.forEach((r,i)=>msg+=i+1+'. '+r.cliente+' · $'+r.comision+' · estado:'+r.estado+'\n');
+  alert(msg);
 }
 
 function eliminarReserva(idx){
