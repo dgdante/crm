@@ -2208,10 +2208,9 @@ function renderDante(){
       <h3 id="mr-title">Nueva reserva</h3>
       <label class="field-label">Mes de toma de reserva <span class="req">*</span></label>
       <input type="month" id="mr-mestoma"/>
-      <label class="field-label">Mes de cierre <span class="req">*</span></label>
-      <input type="month" id="mr-mescierre" onchange="syncFechaCierre()"/>
-      <label class="field-label">Fecha exacta de cierre <span style="font-size:11px;color:#888">(para Trackeo Semanal)</span></label>
-      <input type="date" id="mr-fechacierre"/>
+      <label class="field-label">Fecha exacta de cierre <span class="req">*</span></label>
+      <input type="date" id="mr-fechacierre" onchange="syncMesCierreFromFecha()"/>
+      <input type="hidden" id="mr-mescierre"/>
       <label class="field-label">Cliente <span class="req">*</span></label>
       <div style="position:relative">
         <input type="text" id="mr-cliente" placeholder="Escribí para buscar..." autocomplete="off"
@@ -2386,7 +2385,11 @@ function abrirModalReserva(idx){
   const r=idx!==null?reservas[idx]:null;
   document.getElementById('mr-title').textContent=r?'Editar reserva':'Nueva reserva';
   document.getElementById('mr-mestoma').value=r?.mesToma||getCurrentYM();
-  document.getElementById('mr-mescierre').value=r?.mesCierre||getCurrentYM();
+  // Set fechacierre: use saved fechaCierre or default to last day of mesCierre
+  const _mc = r?.mesCierre||getCurrentYM();
+  const _fc = r?.fechaCierre || (()=>{ const [y,m]=_mc.split('-').map(Number); return _mc+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'); })();
+  document.getElementById('mr-fechacierre').value=_fc;
+  document.getElementById('mr-mescierre').value=_mc;
   document.getElementById('mr-cliente').value=r?.cliente||'';
   document.getElementById('mr-punta').value=r?.punta||'Vendedora';
   document.getElementById('mr-codigo').value=r?.codigo||'';
@@ -2396,7 +2399,6 @@ function abrirModalReserva(idx){
   document.getElementById('mr-bolsillo').value=r?.bolsillo||'';
   document.getElementById('mr-estado').value=r?.estado||'En negociación';
   document.getElementById('mr-dir').value=r?.direccion||'';
-  document.getElementById('mr-fechacierre').value=r?.fechaCierre||'';
   toggleCodigoField();
   document.getElementById('modal-reserva').classList.add('open');
 }
@@ -2416,14 +2418,10 @@ function calcComisionAuto(){
   calcBolsillo();
 }
 
-function syncFechaCierre(){
-  const mes = document.getElementById('mr-mescierre').value;
-  const fechaEl = document.getElementById('mr-fechacierre');
-  if(mes && fechaEl && !fechaEl.value){
-    // Default to last day of selected month
-    const [y,m] = mes.split('-').map(Number);
-    const lastDay = new Date(y, m, 0).getDate();
-    fechaEl.value = mes+'-'+String(lastDay).padStart(2,'0');
+function syncMesCierreFromFecha(){
+  const fecha = document.getElementById('mr-fechacierre').value;
+  if(fecha){
+    document.getElementById('mr-mescierre').value = fecha.slice(0,7);
   }
 }
 
