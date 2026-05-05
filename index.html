@@ -250,7 +250,7 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
     <div class="tab" onclick="showTab('dante')">Facturación</div>
     <div class="tab" onclick="showTab('team')">Team consolidado</div>
     <div class="tab" onclick="showTab('balance')">Balance</div>
-    <div class="tab" onclick="showTab('opps')">Oportunidades</div>
+
   </div>
 
   <!-- TAB: DATA BASE -->
@@ -564,11 +564,11 @@ function daysSince(dateStr){if(!dateStr)return null;return Math.floor((new Date(
 function getLastTouch(id){const t=touches[id];return t&&t.length?t[t.length-1]:null;}
 
 function showTab(id){
-  ['db','trackeo','cartera','compradores','dante','team','balance','opps'].forEach(t=>{
+  ['db','trackeo','cartera','compradores','dante','team','balance'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=t===id?'block':'none';
   });
   document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active',['db','trackeo','cartera','compradores','dante','team','balance','opps'][i]===id);
+    el.classList.toggle('active',['db','trackeo','cartera','compradores','dante','team','balance'][i]===id);
   });
   if(id==='opps') renderOpps();
   if(id==='trackeo'){
@@ -1010,6 +1010,26 @@ function onTipoTouqueChange(){
       <label class="field-label">Al bolsillo (USD)</label>
       <input type="number" id="of-bolsillo" placeholder="Ej: 4500"/>`;
   }
+
+  // ── Campo de inversión para todos los toques verdes simples ──
+  const verdesSimples = ['cafe','popby','evento','llamadoverde','bajaprecio'];
+  if(verdesSimples.includes(type)){
+    el.innerHTML += `
+      <label class="field-label" style="margin-top:8px">💰 Inversión del toque (opcional)</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:#aaa;font-size:13px">$</span>
+        <input type="number" id="ex-monto" placeholder="Ej: 5000" style="flex:1"/>
+      </div>`;
+  }
+  // También para prelisting y prebuying agregar monto
+  if(['prelisting','prebuying','referido'].includes(type)){
+    el.innerHTML += `
+      <label class="field-label" style="margin-top:8px">💰 Inversión del toque (opcional)</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:#aaa;font-size:13px">$</span>
+        <input type="number" id="ex-monto" placeholder="Ej: 5000" style="flex:1"/>
+      </div>`;
+  }
 }
 function abrirHistorialToques(contactId){
   const c = contacts.find(x=>x.id===contactId);
@@ -1294,6 +1314,9 @@ function saveTouch(){
     }
   }
 
+  // Save monto if present
+  const montoEl = document.getElementById('ex-monto');
+  if(montoEl && montoEl.value) touchObj.monto = Number(montoEl.value);
   touches[activeId].push(touchObj);
 
   // ── Sync prospección toques → Trackeo Semanal ──
@@ -1486,7 +1509,6 @@ function renderCartera(){
   h+=`<div class="stat-card"><div class="stat-label">Sin visitas +30d</div><div class="stat-val" style="color:${sinVis30>0?'#A32D2D':'#3B6D11'}">${activas.length?sinVis30:'—'}</div></div>`;
   h+=`<div class="stat-card"><div class="stat-label">Sin BP +30d</div><div class="stat-val" style="color:${sinBP30>0?'#A32D2D':'#3B6D11'}">${activas.length?sinBP30:'—'}</div></div>`;
   h+=`<div class="stat-card"><div class="stat-label">PL pendientes</div><div class="stat-val" style="color:#534AB7">${pendPLs}</div></div>`;
-  h+=`<div class="stat-card"><div class="stat-label">Vendidas (histórico)</div><div class="stat-val" style="color:#3B6D11">${propiedadesVendidas.length}</div></div>`;
   h+=`<div class="stat-card" style="border-left:3px solid #3B6D11"><div class="stat-label">Comisión potencial (4%)</div><div class="stat-val" style="color:#3B6D11;font-size:18px">${formatUSD(Math.round(filtradas.reduce((s,p)=>s+(Number(p.precio)||0),0)*0.04))}</div><div class="stat-sub">si se vende toda la cartera</div></div>`;
   h+='</div>';
 
@@ -1509,7 +1531,7 @@ function renderCartera(){
       const estBg=(p.estadoCartera||'Captada')==='Captada'?'#E6F1FB':'#EAF3DE';
       const estCol=(p.estadoCartera||'Captada')==='Captada'?'#0C447C':'#27500A';
       h+=`<tr>
-        <td style="font-weight:500;font-size:12px">${p.direccion||'—'}${elBadge}</td>
+        <td style="font-weight:500;font-size:12px;cursor:pointer;text-decoration:underline dotted;color:#185FA5" onclick="verActividadPropiedad(${idx})" title="Ver actividad">${p.direccion||'—'}${elBadge}</td>
         <td><span class="tag tag-otro" style="font-size:11px">${p.tipo||'—'}</span></td>
         <td><select onchange="cambiarEstadoProp(${idx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8;background:${estBg};color:${estCol}">
           <option value="Captada" ${(p.estadoCartera||'Captada')==='Captada'?'selected':''}>Captada</option>
@@ -1530,8 +1552,9 @@ function renderCartera(){
         <td style="${db!==null&&db>30?'background:#FAEEDA;':''}text-align:center;font-size:12px">${db!==null?db+'d':'—'}</td>
         <td style="white-space:nowrap">
           <button onclick="abrirModalProp(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px">Editar</button>
-          <button onclick="carteraRegistrarVisita(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px" title="Registrar visita">+Visita</button>
-          <button onclick="carteraRegistrarBP(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px">BP</button>
+          <button onclick="abrirModalVisita(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px">+Visita</button>
+          <button onclick="abrirModalConsulta(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px">+Consulta</button>
+          <button onclick="abrirModalBajaPrecio(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px">BP</button>
         </td>
       </tr>`;
     });
@@ -1541,7 +1564,7 @@ function renderCartera(){
   // ── Pipeline PreListings ──
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
   h+=`<div style="font-size:15px;font-weight:500">Pipeline de PreListings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${carteraPLs.length} registrados</span></div>`;
-  h+='<button class="btn-primary" style="font-size:12px;padding:6px 14px;background:#534AB7" onclick="abrirModalPL()">+ Agregar PreListing</button></div>';
+  h+='</div>';
   h+='<div class="table-wrap"><table><thead><tr><th style="width:13%">N° Trackeo</th><th style="width:17%">Contacto</th><th style="width:22%">Dirección</th><th style="width:10%">Tipo</th><th style="width:12%">Estado</th><th style="width:11%">Ingreso</th><th>Nota</th></tr></thead><tbody>';
 
   if(!carteraPLs.length){
@@ -1564,6 +1587,36 @@ function renderCartera(){
   }
   h+='</tbody></table></div>';
 
+  // ── Registro de propiedades vendidas ──
+  if(propiedadesVendidas.length > 0){
+    h += `<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Registro de propiedades vendidas <span style="font-size:12px;font-weight:400;color:#888">${propiedadesVendidas.length} propiedad${propiedadesVendidas.length!==1?'es':''}</span></div>`;
+    h += `<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:700px">
+      <thead><tr>
+        <th>Dirección</th>
+        <th>Precio publicado</th>
+        <th>Precio cerrado</th>
+        <th>Variación</th>
+        <th>Cliente</th>
+        <th>Mes de cierre</th>
+      </tr></thead><tbody>`;
+    propiedadesVendidas.slice().reverse().forEach(p=>{
+      const precPub = Number(p.precio||p.precioPublicado||0);
+      const precCierre = Number(p.precioCierre||0);
+      const variacion = precPub>0&&precCierre>0 ? ((precCierre-precPub)/precPub*100).toFixed(1) : null;
+      const varColor = variacion===null?'#aaa':Number(variacion)>=0?'#3B6D11':'#A32D2D';
+      const fmtU = n => n ? '$'+Number(n).toLocaleString('es-AR') : '—';
+      h += `<tr>
+        <td style="font-weight:500;font-size:12px">${p.direccion||'—'}</td>
+        <td style="font-size:12px">${fmtU(precPub)}</td>
+        <td style="font-size:12px;font-weight:500;color:#3B6D11">${fmtU(precCierre)}</td>
+        <td style="font-size:12px;color:${varColor};font-weight:500">${variacion!==null?(Number(variacion)>=0?'+':'')+variacion+'%':'—'}</td>
+        <td style="font-size:12px;color:#888">${p.clienteVenta||p.duenio||'—'}</td>
+        <td style="font-size:12px;color:#888">${p.mesCierre||p.fechaVenta?.slice(0,7)||'—'}</td>
+      </tr>`;
+    });
+    h += '</tbody></table></div></div>';
+  }
+
   el.innerHTML = h;
 
   // Modales — crear solo una vez
@@ -1571,6 +1624,13 @@ function renderCartera(){
     const mp=document.createElement('div');mp.className='overlay';mp.id='modal-prop';
     mp.innerHTML=`<div class="modal" style="max-width:460px">
       <h3 id="mp-title">Agregar propiedad</h3>
+      <label class="field-label">Contacto / Dueño <span class="req">*</span></label>
+      <div style="position:relative">
+        <input type="text" id="mp-contacto-search" placeholder="Escribí para buscar contacto..." autocomplete="off"
+          oninput="buscarContactoProp(this.value)" style="width:100%"/>
+        <div id="mp-contacto-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e0dfd8;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:999;max-height:160px;overflow-y:auto"></div>
+      </div>
+      <input type="hidden" id="mp-contacto-id"/>
       <label class="field-label">Dirección <span class="req">*</span></label><input type="text" id="mp-dir" placeholder="Ej: Calle 13 N°456, La Plata"/>
       <label class="field-label">Tipo</label><select id="mp-tipo">${PROP_TIPOS.map(t=>'<option>'+t+'</option>').join('')}</select>
       <label class="field-label">Dueño</label><input type="text" id="mp-duenio" placeholder="Ej: Carlos Sánchez"/>
@@ -1605,6 +1665,9 @@ function abrirModalProp(idx){
   _propEditIdx=idx;
   const p=idx!==null?carteraProps[idx]:null;
   document.getElementById('mp-title').textContent=p?'Editar propiedad':'Agregar propiedad';
+  document.getElementById('mp-contacto-search').value=p?.duenio||'';
+  document.getElementById('mp-contacto-id').value=p?.contactoId||'';
+  document.getElementById('mp-contacto-dropdown').style.display='none';
   document.getElementById('mp-dir').value=p?.direccion||'';
   document.getElementById('mp-tipo').value=p?.tipo||PROP_TIPOS[0];
   document.getElementById('mp-duenio').value=p?.duenio||'';
@@ -1617,12 +1680,88 @@ function abrirModalProp(idx){
   document.getElementById('modal-prop').classList.add('open');
 }
 function cerrarModalProp(){ document.getElementById('modal-prop').classList.remove('open'); }
+function buscarContactoProp(q){
+  const dd=document.getElementById('mp-contacto-dropdown');
+  if(!q||q.length<2){dd.style.display='none';return;}
+  const matches=contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())).slice(0,6);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML=matches.map(c=>'<div onclick="seleccionarContactoProp(\''+c.id+'\',\''+c.name.replace(/\'/g,"\\'")+'\')"'
+    +' style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0efe9"'
+    +' onmouseover="this.style.background=\'#f5f4f0\'" onmouseout="this.style.background=\'\'">'
+    +'<span style="font-weight:500">'+c.name+'</span>'
+    +'<span style="font-size:11px;color:#aaa;margin-left:6px">'+(tiers[c.id]||'B')+'</span>'
+    +'</div>').join('');
+  dd.style.display='block';
+}
+
+function seleccionarContactoProp(id,name){
+  document.getElementById('mp-contacto-search').value=name;
+  document.getElementById('mp-contacto-id').value=id;
+  document.getElementById('mp-duenio').value=name;
+  document.getElementById('mp-contacto-dropdown').style.display='none';
+}
+
+function buscarContactoProp(q){
+  const dd=document.getElementById('mp-contacto-dropdown');
+  if(!q||q.length<2){dd.style.display='none';return;}
+  const matches=contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.innerHTML=matches.map(c=>'<div onclick="seleccionarContactoProp(\''+c.id+'\',\''+c.name.replace(/\'/g,"\\'")+'\')"'
+    +' style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0efe9"'
+    +' onmouseover="this.style.background=\'#f5f4f0\'" onmouseout="this.style.background=\'\'">'
+    +'<span style="font-weight:500">'+c.name+'</span>'
+    +'<span style="font-size:11px;color:#aaa;margin-left:6px">'+(tiers[c.id]||'B')+'</span>'
+    +'</div>').join('');
+  dd.style.display='block';
+}
+
+function seleccionarContactoProp(id,name){
+  document.getElementById('mp-contacto-search').value=name;
+  document.getElementById('mp-contacto-id').value=id;
+  document.getElementById('mp-duenio').value=name;
+  document.getElementById('mp-contacto-dropdown').style.display='none';
+}
+
 function guardarProp(){
   const dir=document.getElementById('mp-dir').value.trim();
   if(!dir) return;
-  const obj={direccion:dir,tipo:document.getElementById('mp-tipo').value,duenio:document.getElementById('mp-duenio').value,precio:document.getElementById('mp-precio').value,tasacion:document.getElementById('mp-tasacion').value,esEleva:document.getElementById('mp-eleva').checked,fechaPublicacion:document.getElementById('mp-fechapub').value,ultimaVisita:document.getElementById('mp-visita').value,ultimaBP:document.getElementById('mp-bp').value,estado:'activa',estadoCartera:'Captada'};
+  const contactoId=document.getElementById('mp-contacto-id').value;
+  const contactoNombre=document.getElementById('mp-contacto-search').value||document.getElementById('mp-duenio').value;
+  const isNew=_propEditIdx===null;
+  const fechaPub=document.getElementById('mp-fechapub').value||new Date().toISOString().split('T')[0];
+  const obj={
+    direccion:dir, tipo:document.getElementById('mp-tipo').value,
+    duenio:document.getElementById('mp-duenio').value||contactoNombre,
+    contactoId, contactoNombre,
+    precio:document.getElementById('mp-precio').value,
+    tasacion:document.getElementById('mp-tasacion').value,
+    esEleva:document.getElementById('mp-eleva').checked,
+    fechaPublicacion:fechaPub,
+    ultimaVisita:document.getElementById('mp-visita').value,
+    ultimaBP:document.getElementById('mp-bp').value,
+    estado:'activa', estadoCartera:'Captada'
+  };
   if(_propEditIdx!==null) carteraProps[_propEditIdx]={...carteraProps[_propEditIdx],...obj};
   else carteraProps.push(obj);
+
+  // ── Sync captación → Trackeo Semanal (solo al agregar nueva) ──
+  if(isNew && typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+    const parts=fechaPub.split('-').map(Number);
+    const d=new Date(parts[0],parts[1]-1,parts[2]);
+    let week=WEEKS.find(w=>d>=w.start&&d<=w.end);
+    if(!week) week=d<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+    if(week){
+      if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[week.num].cart.Capt) trkData[week.num].cart.Capt=[];
+      trkData[week.num].cart.Capt.push({n:contactoNombre||dir, note:'Captación: '+dir, auto:false});
+    }
+    // Also register touch on contact if selected
+    if(contactoId){
+      if(!touches[contactoId]) touches[contactoId]=[];
+      touches[contactoId].push({type:'prelisting',date:fechaPub,note:'Captación: '+dir});
+    }
+  }
+
   cerrarModalProp(); renderCartera();
 }
 
@@ -1639,8 +1778,21 @@ function guardarPL(){
 function cambiarEstadoProp(idx, val){
   if(val==='Vendida'){
     const p=carteraProps[idx];
-    const pv=prompt('Precio de venta final (USD):',p.precio||'');
-    propiedadesVendidas.push({...p,estadoCartera:'Vendida',precioVenta:pv||p.precio,fechaVenta:new Date().toISOString().split('T')[0],diasMercado:daysSinceDate(p.fechaPublicacion)});
+    const precioCierre=prompt('Precio de cierre (USD):', p.precio||'');
+    if(precioCierre===null) return; // cancelled
+    const clienteVenta=prompt('Nombre del cliente comprador (opcional):', '');
+    const now=new Date();
+    const mesCierre=(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
+    propiedadesVendidas.push({
+      ...p,
+      estadoCartera:'Vendida',
+      precioPublicado:p.precio,
+      precioCierre:precioCierre||p.precio,
+      clienteVenta:clienteVenta||'',
+      mesCierre,
+      fechaVenta:now.toISOString().split('T')[0],
+      diasMercado:daysSinceDate(p.fechaPublicacion)
+    });
     carteraProps.splice(idx,1);
   } else {
     carteraProps[idx].estadoCartera=val;
@@ -2028,9 +2180,9 @@ function renderDante(){
       <label class="field-label">Valor de la oferta (USD) <span class="req">*</span></label>
       <input type="number" id="mr-oferta" placeholder="Ej: 180000" oninput="calcularComision()"/>
       <label class="field-label">Comisión (USD) — 3% sugerido</label>
-      <input type="number" id="mr-comision" placeholder="Se calcula automático, podés editarlo"/>
-      <label class="field-label">Bolsillo (USD, opcional)</label>
-      <input type="number" id="mr-bolsillo" placeholder="Lo calculás vos"/>
+      <input type="number" id="mr-comision" placeholder="Se calcula automático, podés editarlo" oninput="calcBolsillo()"/>
+      <label class="field-label">Al bolsillo (USD) — <span style="color:#3B6D11;font-size:11px">75% de la comisión (se completa automático)</span></label>
+      <input type="number" id="mr-bolsillo" placeholder="Se calcula automático — 75% de la comisión"/>
       <label class="field-label">Estado</label>
       <select id="mr-estado">${RESERVA_ESTADOS.map(e=>'<option>'+e+'</option>').join('')}</select>
       <div class="modal-btns">
@@ -2169,18 +2321,30 @@ function abrirModalReserva(idx){
 
 function cerrarModalReserva(){ document.getElementById('modal-reserva').classList.remove('open'); }
 
+function calcBolsillo(){
+  const comision = Number(document.getElementById('mr-comision').value)||0;
+  const bolsilloEl = document.getElementById('mr-bolsillo');
+  if(bolsilloEl && comision > 0){
+    bolsilloEl.value = Math.round(comision * 0.75);
+  }
+}
+
+function calcComisionAuto(){
+  // Recalculate bolsillo when oferta changes
+  calcBolsillo();
+}
+
 function buscarClienteReserva(q){
   const dd = document.getElementById('mr-cliente-dropdown');
   if(!q || q.length < 2){ dd.style.display='none'; return; }
   const matches = contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())).slice(0,8);
   if(!matches.length){ dd.style.display='none'; return; }
-  dd.innerHTML = matches.map(c=>`
-    <div onclick="seleccionarClienteReserva('${c.id}','${c.name.replace(/'/g,"\'")}')"
-      style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0efe9"
-      onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background=''">
-      <span style="font-weight:500">${c.name}</span>
-      <span style="font-size:11px;color:#aaa;margin-left:6px">${tiers[c.id]||'B'}</span>
-    </div>`).join('');
+  dd.innerHTML = matches.map(c=>'<div onclick="seleccionarClienteReserva(\''+c.id+'\',\''+c.name.replace(/\'/g,"\\'")+'\')"'
+    +' style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0efe9"'
+    +' onmouseover="this.style.background=\'#f5f4f0\'" onmouseout="this.style.background=\'\'">'
+    +'<span style="font-weight:500">'+c.name+'</span>'
+    +'<span style="font-size:11px;color:#aaa;margin-left:6px">'+(tiers[c.id]||'B')+'</span>'
+    +'</div>').join('');
   dd.style.display='block';
 }
 
@@ -2843,7 +3007,9 @@ function setGasto(ym, id, val){
 }
 function getGastoConDefault(ym, id){
   const stored = getGasto(ym, id);
-  if(stored !== null) return stored;
+  // stored===null means not set → use default
+  // stored===0 means explicitly set to 0 → use 0
+  if(stored !== null && stored !== undefined) return stored;
   const fijo = GASTOS_FIJOS.find(g=>g.id===id);
   return fijo ? fijo.default : 0;
 }
@@ -2964,40 +3130,103 @@ function renderBalance(){
 
   h += `</tbody></table></div></div>`;
 
-  // ── Formulario gastos mes actual ──
-  h += `<div style="font-size:15px;font-weight:500;margin-bottom:8px">Cargar gastos — ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][parseInt(curYM.split('-')[1])-1]} ${curYM.split('-')[0]}</div>
-  <div style="background:#fff;border:1px solid #e0dfd8;border-radius:10px;padding:1.25rem;margin-bottom:1.5rem">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">`;
+  // ── Formulario gastos por mes (collapsible) ──
+  const mesesGasto = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'];
+  const MESES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-  TODOS_GASTOS.forEach(g=>{
-    const val = getGastoConDefault(curYM, g.id);
-    const isFijo = GASTOS_FIJOS.find(f=>f.id===g.id);
-    h += `<div>
-      <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">${g.label}${isFijo?' <span style="font-size:10px;color:#aaa">(fijo)</span>':''}</label>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:13px;color:#aaa">$</span>
-        <input type="number" id="gasto_${g.id}" value="${val||''}" placeholder="${isFijo?isFijo.default:'0'}"
-          style="width:100%;font-size:13px;padding:7px 10px;border:1px solid #e0dfd8;border-radius:8px"
-          onchange="guardarGasto('${curYM}','${g.id}',this.value)"/>
+  h += `<div style="font-size:15px;font-weight:500;margin-bottom:12px">Cargar gastos por mes</div>`;
+
+  mesesGasto.forEach(ym => {
+    const [yr,mo] = ym.split('-');
+    const mesNom = MESES_NOMBRES[parseInt(mo)-1] + ' ' + yr;
+    const isCur = ym === curYM;
+    const totalMes = totalGastosMes(ym);
+    const bolsoMes = alBolsoMes(ym);
+    const netMes = bolsoMes - totalMes;
+    const netColor = netMes >= 0 ? '#3B6D11' : '#A32D2D';
+    const panelId = 'panel-gastos-' + ym.replace('-','_');
+
+    // Collapsed summary row (always visible)
+    h += `<div style="border:1px solid #e0dfd8;border-radius:10px;overflow:hidden;margin-bottom:8px">
+      <div onclick="toggleGastosPanel('${panelId}')"
+        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:${isCur?'#fffbf0':'#fff'};cursor:pointer;user-select:none">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:13px;font-weight:500">${mesNom}</span>
+          ${isCur?'<span style="font-size:10px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:10px">actual</span>':''}
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#aaa">Al bolso</div>
+            <div style="font-size:13px;font-weight:500;color:#3B6D11">${bolsoMes?'$'+bolsoMes.toLocaleString('es-AR'):'—'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#aaa">Gastos</div>
+            <div style="font-size:13px;font-weight:500;color:#A32D2D">${totalMes?'$'+totalMes.toLocaleString('es-AR'):'—'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#aaa">Balance</div>
+            <div style="font-size:13px;font-weight:600;color:${netColor}">${'$'+netMes.toLocaleString('es-AR')}</div>
+          </div>
+          <span id="${panelId}-arrow" style="font-size:14px;color:#aaa;transition:transform .2s">${isCur?'▲':'▼'}</span>
+        </div>
+      </div>
+
+      <!-- Expandable gastos form -->
+      <div id="${panelId}" style="display:${isCur?'block':'none'};padding:16px;background:#fafaf8;border-top:1px solid #e0dfd8">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:12px">
+          ${TODOS_GASTOS.map(g => {
+            const val = getGastoConDefault(ym, g.id);
+            const isFijo = GASTOS_FIJOS.find(f=>f.id===g.id);
+            return '<div>'
+              +'<label style="font-size:11px;color:#888;display:block;margin-bottom:3px">'+g.label+(isFijo?' <span style=\"font-size:10px;color:#bbb\">(fijo)</span>':'')+'</label>'
+              +'<div style="display:flex;align-items:center;gap:4px">'
+              +'<span style="font-size:12px;color:#aaa">$</span>'
+              +'<input type="number" id="gasto_'+ym.replace('-','_')+'_'+g.id+'" value="'+(val||'')+'" placeholder="'+(isFijo?isFijo.default:'0')+'"'
+              +' style="width:100%;font-size:12px;padding:5px 8px;border:1px solid #e0dfd8;border-radius:6px"'
+              +' onchange="guardarGastoMes(\''+ym+'\',\''+g.id+'\',this.value)"/>'
+              +'</div>'
+              +'</div>';
+          }).join('')}
+        </div>
+        <div style="padding-top:10px;border-top:1px solid #e0dfd8;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;color:#888">Total gastos ${mesNom}</div>
+          <div style="font-size:16px;font-weight:500;color:#A32D2D" id="total-gastos-${ym.replace('-','_')}">$${totalMes.toLocaleString('es-AR')}</div>
+        </div>
       </div>
     </div>`;
   });
 
-  h += `</div>
-    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e0dfd8;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:14px;font-weight:500;color:#888">Total gastos este mes</div>
-      <div style="font-size:20px;font-weight:500;color:#A32D2D" id="total-gastos-mes">${fmtU(totalGastosMes(curYM))}</div>
-    </div>
-  </div>`;
-
   el.innerHTML = h;
 }
 
+function toggleGastosPanel(panelId){
+  const panel = document.getElementById(panelId);
+  const arrow = document.getElementById(panelId+'-arrow');
+  if(!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.textContent = isOpen ? '▼' : '▲';
+}
+
+function guardarGastoMes(ym, id, val){
+  // Save explicit number even if 0; save null if empty (reverts to default)
+  const parsed = val===''||val===null||val===undefined ? null : Number(val);
+  if(!gastos[ym]) gastos[ym]={};
+  gastos[ym][id] = parsed;
+  const totalEl = document.getElementById('total-gastos-'+ym.replace('-','_'));
+  if(totalEl) totalEl.textContent = '$'+totalGastosMes(ym).toLocaleString('es-AR');
+}
+
 function guardarGasto(ym, id, val){
-  setGasto(ym, id, Number(val)||0);
+  const parsed = val===''||val===null||val===undefined ? null : Number(val);
+  if(!gastos[ym]) gastos[ym]={};
+  gastos[ym][id] = parsed;
   // Update total display
   const totalEl = document.getElementById('total-gastos-mes');
   if(totalEl) totalEl.textContent = '$'+totalGastosMes(ym).toLocaleString('es-AR');
+  // Also update collapsible panel total if present
+  const totalEl2 = document.getElementById('total-gastos-'+ym.replace('-','_'));
+  if(totalEl2) totalEl2.textContent = '$'+totalGastosMes(ym).toLocaleString('es-AR');
 }
 
 function abrirDetalleGastos(ym){
@@ -3107,7 +3336,7 @@ function renderCompradores(){
   // Pipeline PreBuyings
   h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
     <div style="font-size:15px;font-weight:500">Pipeline de PreBuyings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${compradorePBs.length} registrados</span></div>
-    <button class="btn-primary" style="font-size:12px;padding:6px 14px;background:#534AB7" onclick="abrirModalPB()">+ Agregar PreBuying</button>
+
   </div>
   <div class="table-wrap"><table>
     <thead><tr>
