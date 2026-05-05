@@ -1992,10 +1992,7 @@ function renderDante(){
   h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
     <div><div style="font-size:18px;font-weight:500">Dante Reservas</div>
     <div style="font-size:13px;color:#888;margin-top:2px">Reservas, facturación y seguimiento de operaciones</div></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
-      <button class="btn-sec" style="font-size:12px;padding:7px 12px" onclick="debugMes()">🔍 Debug mes</button>
-    </div>
+    <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
   </div>`;
 
   // Barra objetivo anual
@@ -2210,7 +2207,9 @@ function renderDante(){
       <label class="field-label">Mes de toma de reserva <span class="req">*</span></label>
       <input type="month" id="mr-mestoma"/>
       <label class="field-label">Mes de cierre <span class="req">*</span></label>
-      <input type="month" id="mr-mescierre"/>
+      <input type="month" id="mr-mescierre" onchange="syncFechaCierre()"/>
+      <label class="field-label">Fecha exacta de cierre <span style="font-size:11px;color:#888">(para Trackeo Semanal)</span></label>
+      <input type="date" id="mr-fechacierre"/>
       <label class="field-label">Cliente <span class="req">*</span></label>
       <div style="position:relative">
         <input type="text" id="mr-cliente" placeholder="Escribí para buscar..." autocomplete="off"
@@ -2357,19 +2356,6 @@ function calcularComision(){
   document.getElementById('mr-comision').value=Math.round(oferta*0.03)||'';
 }
 
-function debugMes(){
-  const ym = prompt('¿Qué mes querés inspeccionar? (ej: 2026-03)', '2026-03');
-  if(!ym) return;
-  const cerradas = reservas.filter(r=>r.mesCierre===ym && r.estado==='Cerrada');
-  const tomadas = reservas.filter(r=>r.mesToma===ym);
-  let msg = '=== CERRADAS (mesCierre='+ym+') ===\n';
-  cerradas.forEach((r,i)=>msg+=i+1+'. '+r.cliente+' · $'+r.comision+' · estado:'+r.estado+'\n');
-  msg += '\nTOTAL CERRADAS: $'+cerradas.reduce((s,r)=>s+(Number(r.comision)||0),0);
-  msg += '\n\n=== TOMADAS (mesToma='+ym+') ===\n';
-  tomadas.forEach((r,i)=>msg+=i+1+'. '+r.cliente+' · $'+r.comision+' · estado:'+r.estado+'\n');
-  alert(msg);
-}
-
 function eliminarReserva(idx){
   if(!confirm('¿Eliminar esta reserva? También se quitará del Trackeo Semanal si fue registrada como oferta.')) return;
   const r = reservas[idx];
@@ -2408,6 +2394,7 @@ function abrirModalReserva(idx){
   document.getElementById('mr-bolsillo').value=r?.bolsillo||'';
   document.getElementById('mr-estado').value=r?.estado||'En negociación';
   document.getElementById('mr-dir').value=r?.direccion||'';
+  document.getElementById('mr-fechacierre').value=r?.fechaCierre||'';
   toggleCodigoField();
   document.getElementById('modal-reserva').classList.add('open');
 }
@@ -2425,6 +2412,17 @@ function calcBolsillo(){
 function calcComisionAuto(){
   // Recalculate bolsillo when oferta changes
   calcBolsillo();
+}
+
+function syncFechaCierre(){
+  const mes = document.getElementById('mr-mescierre').value;
+  const fechaEl = document.getElementById('mr-fechacierre');
+  if(mes && fechaEl && !fechaEl.value){
+    // Default to last day of selected month
+    const [y,m] = mes.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    fechaEl.value = mes+'-'+String(lastDay).padStart(2,'0');
+  }
 }
 
 function buscarClienteReserva(q){
@@ -2457,9 +2455,11 @@ function guardarReserva(){
   const direccion=document.getElementById('mr-dir')?.value||'';
   if(punta==='Compradora'&&!direccion){ alert('Ingresá la dirección de la propiedad.'); return; }
 
+  const fechaCierre = document.getElementById('mr-fechacierre')?.value || '';
   const obj={
     mesToma, mesCierre, cliente,
     punta,
+    fechaCierre,
     direccion,
     codigo:document.getElementById('mr-codigo').value,
     procedencia:document.getElementById('mr-procedencia').value,
@@ -2497,11 +2497,36 @@ function guardarReserva(){
       trkData[cw.num][section].Ofertas.push({n:label, note:'Reserva tomada', auto:true});
     }
 
-    // Al pasar a Cerrada → usa semana ACTUAL para Cierres, sin quitar Ofertas
-    if(obj.estado==='Cerrada' && prevEstado!=='Cerrada'){
-      const cw = currentWeek();
-      if(!trkData[cw.num][section].Cierres) trkData[cw.num][section].Cierres=[];
-      trkData[cw.num][section].Cierres.push({n:label, note:'Cierre '+obj.punta, auto:true});
+    // Al pasar a Cerrada (nueva) O al editar fecha de cierre existente
+    const fechaCierreOld = !isNew ? reservas[danteReservaEditIdx]?.fechaCierre : null;
+    const fechaCierreChanged = !isNew && obj.estado==='Cerrada' && prevEstado==='Cerrada' && fechaCierre && fechaCierre!==fechaCierreOld;
+
+    if((obj.estado==='Cerrada' && prevEstado!=='Cerrada') || fechaCierreChanged){
+      // If editing existing cierre with new date: remove old entry first
+      if(fechaCierreChanged && fechaCierreOld){
+        const partsOld=fechaCierreOld.split('-').map(Number);
+        const dOld=new Date(partsOld[0],partsOld[1]-1,partsOld[2]);
+        let weekOld=WEEKS.find(w=>dOld>=w.start&&dOld<=w.end);
+        if(!weekOld) weekOld=dOld<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+        if(weekOld && trkData[weekOld.num]?.[section]?.Cierres){
+          trkData[weekOld.num][section].Cierres = trkData[weekOld.num][section].Cierres
+            .filter(e=>!(e.n===label && e.auto===true));
+        }
+      }
+      // Add cierre to correct week
+      let cierreWeek = null;
+      if(fechaCierre){
+        const parts=fechaCierre.split('-').map(Number);
+        const d=new Date(parts[0],parts[1]-1,parts[2]);
+        cierreWeek=WEEKS.find(w=>d>=w.start&&d<=w.end);
+        if(!cierreWeek) cierreWeek=d<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+      } else {
+        cierreWeek=currentWeek();
+      }
+      if(cierreWeek){
+        if(!trkData[cierreWeek.num][section].Cierres) trkData[cierreWeek.num][section].Cierres=[];
+        trkData[cierreWeek.num][section].Cierres.push({n:label,note:'Cierre '+obj.punta+(fechaCierre?' · '+fechaCierre:''),auto:true});
+      }
     }
   }
 
@@ -3457,6 +3482,39 @@ function renderCompradores(){
     });
   }
   h += '</tbody></table></div>';
+
+  // ── Registro de reservas caídas (compradora) ──
+  const reservasCaidasComp = typeof reservas!=='undefined'
+    ? reservas.filter(r=>r.estado==='Caída')
+    : [];
+
+  if(reservasCaidasComp.length > 0){
+    h += `<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Registro de reservas caídas
+      <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${reservasCaidasComp.length} reserva${reservasCaidasComp.length!==1?'s':''}</span>
+    </div>`;
+    h += `<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:600px">
+      <thead><tr>
+        <th>Cliente</th>
+        <th>Punta</th>
+        <th>Búsqueda / dirección</th>
+        <th>Comisión</th>
+        <th>Mes de toma</th>
+        <th>Nota</th>
+      </tr></thead><tbody>`;
+    reservasCaidasComp.slice().reverse().forEach(r=>{
+      const puntaColor = r.punta==='Compradora'?'#085041':'#534AB7';
+      const puntaBg = r.punta==='Compradora'?'#E1F5EE':'#EEEDFE';
+      h += `<tr>
+        <td style="font-weight:500;font-size:12px">${r.cliente||'—'}</td>
+        <td><span style="font-size:11px;font-weight:600;background:${puntaBg};color:${puntaColor};padding:2px 8px;border-radius:10px">${r.punta||'—'}</span></td>
+        <td style="font-size:12px;color:#888">${r.direccion||r.codigo||'—'}</td>
+        <td style="font-size:12px;color:#A32D2D">${r.comision?'$'+Number(r.comision).toLocaleString('es-AR'):'—'}</td>
+        <td style="font-size:12px;color:#888">${r.mesToma||'—'}</td>
+        <td style="font-size:12px;color:#aaa">${r.nota||'—'}</td>
+      </tr>`;
+    });
+    h += '</tbody></table></div></div>';
+  }
 
   el.innerHTML = h;
 
