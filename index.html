@@ -2208,8 +2208,10 @@ function renderDante(){
       <h3 id="mr-title">Nueva reserva</h3>
       <label class="field-label">Mes de toma de reserva <span class="req">*</span></label>
       <input type="month" id="mr-mestoma"/>
-      <label class="field-label">Fecha exacta de cierre <span class="req">*</span></label>
-      <input type="date" id="mr-fechacierre" onchange="syncMesCierreFromFecha()"/>
+      <div id="mr-fechacierre-wrap">
+        <label class="field-label">Fecha exacta de cierre <span class="req">*</span></label>
+        <input type="date" id="mr-fechacierre" onchange="syncMesCierreFromFecha()"/>
+      </div>
       <input type="hidden" id="mr-mescierre"/>
       <label class="field-label">Cliente <span class="req">*</span></label>
       <div style="position:relative">
@@ -2241,7 +2243,7 @@ function renderDante(){
       <label class="field-label">Al bolsillo (USD) — <span style="color:#3B6D11;font-size:11px">75% de la comisión (se completa automático)</span></label>
       <input type="number" id="mr-bolsillo" placeholder="Se calcula automático — 75% de la comisión"/>
       <label class="field-label">Estado</label>
-      <select id="mr-estado">${RESERVA_ESTADOS.map(e=>'<option>'+e+'</option>').join('')}</select>
+      <select id="mr-estado" onchange="toggleFechaCierre()">${RESERVA_ESTADOS.map(e=>'<option>'+e+'</option>').join('')}</select>
       <div class="modal-btns">
         <button class="btn-sec" onclick="cerrarModalReserva()">Cancelar</button>
         <button class="btn-primary" onclick="guardarReserva()">Guardar</button>
@@ -2362,36 +2364,15 @@ function quitarDeTrackeo(r){
   const section = r.punta==='Vendedora' ? 'cart' : 'comp';
   const name = r.cliente;
 
-  // Remove Oferta from mesToma week
+  // Search ALL weeks - remove any auto entry matching this contact
   WEEKS.forEach(w=>{
-    const wym = w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
-    if(wym===r.mesToma && trkData[w.num]?.[section]?.Ofertas){
+    if(trkData[w.num]?.[section]?.Ofertas){
       trkData[w.num][section].Ofertas = trkData[w.num][section].Ofertas.filter(e=>!(e.n===name&&e.auto));
     }
-  });
-
-  // Remove Cierre using exact fechaCierre date if available
-  if(r.estado==='Cerrada'){
-    let cierreWeeks = [];
-    if(r.fechaCierre){
-      const parts=r.fechaCierre.split('-').map(Number);
-      const d=new Date(parts[0],parts[1]-1,parts[2]);
-      let w=WEEKS.find(x=>d>=x.start&&d<=x.end);
-      if(!w) w=d<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
-      if(w) cierreWeeks=[w.num];
-    } else {
-      // Fallback: all weeks in mesCierre month
-      cierreWeeks=WEEKS.filter(w=>{
-        const wym=w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
-        return wym===r.mesCierre;
-      }).map(w=>w.num);
+    if(trkData[w.num]?.[section]?.Cierres){
+      trkData[w.num][section].Cierres = trkData[w.num][section].Cierres.filter(e=>!(e.n===name&&e.auto));
     }
-    cierreWeeks.forEach(wNum=>{
-      if(trkData[wNum]?.[section]?.Cierres){
-        trkData[wNum][section].Cierres = trkData[wNum][section].Cierres.filter(e=>!(e.n===name&&e.auto));
-      }
-    });
-  }
+  });
 }
 
 function eliminarReserva(idx){
@@ -2422,6 +2403,7 @@ function abrirModalReserva(idx){
   document.getElementById('mr-estado').value=r?.estado||'En negociación';
   document.getElementById('mr-dir').value=r?.direccion||'';
   toggleCodigoField();
+  toggleFechaCierre();
   document.getElementById('modal-reserva').classList.add('open');
 }
 
@@ -2438,6 +2420,18 @@ function calcBolsillo(){
 function calcComisionAuto(){
   // Recalculate bolsillo when oferta changes
   calcBolsillo();
+}
+
+function toggleFechaCierre(){
+  const estado = document.getElementById('mr-estado').value;
+  const wrap = document.getElementById('mr-fechacierre-wrap');
+  if(!wrap) return;
+  const isClosed = estado === 'Cerrada';
+  wrap.style.display = isClosed ? 'block' : 'none';
+  if(!isClosed){
+    document.getElementById('mr-fechacierre').value = '';
+    document.getElementById('mr-mescierre').value = '';
+  }
 }
 
 function syncMesCierreFromFecha(){
@@ -2494,6 +2488,8 @@ function guardarReserva(){
   };
   const isNew = danteReservaEditIdx===null;
   const prevEstado = isNew ? null : reservas[danteReservaEditIdx]?.estado;
+  // Capture full old reserva BEFORE updating (needed for trackeo cleanup)
+  const prevReserva = isNew ? null : {...reservas[danteReservaEditIdx]};
   const clienteId = document.getElementById('mr-cliente-id')?.value || null;
   if(danteReservaEditIdx!==null) reservas[danteReservaEditIdx]={...reservas[danteReservaEditIdx],...obj};
   else reservas.push(obj);
@@ -2523,8 +2519,7 @@ function guardarReserva(){
 
     // Si cambia de Cerrada a otro estado → quitar cierre del trackeo
     if(!isNew && prevEstado==='Cerrada' && obj.estado!=='Cerrada'){
-      const rOld = {...reservas[danteReservaEditIdx], estado:'Cerrada'};
-      quitarDeTrackeo(rOld);
+      quitarDeTrackeo(prevReserva); // usa datos viejos (fecha, punta, nombre correctos)
     }
 
     // Al pasar a Cerrada (nueva) O al editar fecha de cierre existente
