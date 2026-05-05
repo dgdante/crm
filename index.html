@@ -2134,7 +2134,10 @@ function renderDante(){
         <td style="font-size:12px;color:#888">${mesLabel(r.mesToma)}</td>
         <td style="font-size:12px;color:#888">${mesLabel(r.mesCierre)}</td>
         <td><span style="font-family:monospace;font-size:11px;color:#534AB7">${r.codigo||'—'}</span></td>
-        <td><button onclick="abrirModalReserva(${i})" class="btn-sec" style="font-size:11px;padding:3px 8px">Editar</button></td>
+        <td style="white-space:nowrap">
+          <button onclick="abrirModalReserva(${i})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">Editar</button>
+          <button onclick="eliminarReserva(${i})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">Eliminar</button>
+        </td>
       </tr>`;
     });
   }
@@ -2298,6 +2301,29 @@ function toggleCodigoField(){
 function calcularComision(){
   const oferta=Number(document.getElementById('mr-oferta').value)||0;
   document.getElementById('mr-comision').value=Math.round(oferta*0.03)||'';
+}
+
+function eliminarReserva(idx){
+  if(!confirm('¿Eliminar esta reserva? También se quitará del Trackeo Semanal si fue registrada como oferta.')) return;
+  const r = reservas[idx];
+
+  // Remove matching Oferta from trkData
+  if(r && r.cliente && typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+    const section = r.punta==='Vendedora' ? 'cart' : 'comp';
+    WEEKS.forEach(w=>{
+      const wym = w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
+      if(wym===r.mesToma && trkData[w.num]?.[section]?.Ofertas){
+        trkData[w.num][section].Ofertas = trkData[w.num][section].Ofertas.filter(e=>e.n!==r.cliente||!e.auto);
+      }
+      // Also remove Cierre if cerrada
+      if(r.estado==='Cerrada' && wym===r.mesCierre && trkData[w.num]?.[section]?.Cierres){
+        trkData[w.num][section].Cierres = trkData[w.num][section].Cierres.filter(e=>e.n!==r.cliente||!e.auto);
+      }
+    });
+  }
+
+  reservas.splice(idx, 1);
+  renderDante();
 }
 
 function abrirModalReserva(idx){
