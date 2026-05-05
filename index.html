@@ -2449,13 +2449,15 @@ function guardarReserva(){
   const cliente=document.getElementById('mr-cliente').value.trim();
   const oferta=document.getElementById('mr-oferta').value;
   const mesToma=document.getElementById('mr-mestoma').value;
-  const mesCierre=document.getElementById('mr-mescierre').value;
+  const fechaCierreVal=document.getElementById('mr-fechacierre').value||'';
+  // Derive mesCierre from exact date
+  const mesCierre=fechaCierreVal ? fechaCierreVal.slice(0,7) : document.getElementById('mr-mescierre').value;
   if(!cliente||!oferta||!mesToma||!mesCierre){ alert('Completá los campos obligatorios.'); return; }
   const punta=document.getElementById('mr-punta').value;
   const direccion=document.getElementById('mr-dir')?.value||'';
   if(punta==='Compradora'&&!direccion){ alert('Ingresá la dirección de la propiedad.'); return; }
 
-  const fechaCierre = document.getElementById('mr-fechacierre')?.value || '';
+  const fechaCierre = fechaCierreVal;
   const obj={
     mesToma, mesCierre, cliente,
     punta,
