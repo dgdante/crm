@@ -2357,25 +2357,47 @@ function calcularComision(){
   document.getElementById('mr-comision').value=Math.round(oferta*0.03)||'';
 }
 
-function eliminarReserva(idx){
-  if(!confirm('¿Eliminar esta reserva? También se quitará del Trackeo Semanal si fue registrada como oferta.')) return;
-  const r = reservas[idx];
+function quitarDeTrackeo(r){
+  if(!r || !r.cliente || typeof trkData==='undefined' || typeof WEEKS==='undefined') return;
+  const section = r.punta==='Vendedora' ? 'cart' : 'comp';
+  const name = r.cliente;
 
-  // Remove matching Oferta from trkData
-  if(r && r.cliente && typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
-    const section = r.punta==='Vendedora' ? 'cart' : 'comp';
-    WEEKS.forEach(w=>{
-      const wym = w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
-      if(wym===r.mesToma && trkData[w.num]?.[section]?.Ofertas){
-        trkData[w.num][section].Ofertas = trkData[w.num][section].Ofertas.filter(e=>e.n!==r.cliente||!e.auto);
-      }
-      // Also remove Cierre if cerrada
-      if(r.estado==='Cerrada' && wym===r.mesCierre && trkData[w.num]?.[section]?.Cierres){
-        trkData[w.num][section].Cierres = trkData[w.num][section].Cierres.filter(e=>e.n!==r.cliente||!e.auto);
+  // Remove Oferta from mesToma week
+  WEEKS.forEach(w=>{
+    const wym = w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
+    if(wym===r.mesToma && trkData[w.num]?.[section]?.Ofertas){
+      trkData[w.num][section].Ofertas = trkData[w.num][section].Ofertas.filter(e=>!(e.n===name&&e.auto));
+    }
+  });
+
+  // Remove Cierre using exact fechaCierre date if available
+  if(r.estado==='Cerrada'){
+    let cierreWeeks = [];
+    if(r.fechaCierre){
+      const parts=r.fechaCierre.split('-').map(Number);
+      const d=new Date(parts[0],parts[1]-1,parts[2]);
+      let w=WEEKS.find(x=>d>=x.start&&d<=x.end);
+      if(!w) w=d<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+      if(w) cierreWeeks=[w.num];
+    } else {
+      // Fallback: all weeks in mesCierre month
+      cierreWeeks=WEEKS.filter(w=>{
+        const wym=w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
+        return wym===r.mesCierre;
+      }).map(w=>w.num);
+    }
+    cierreWeeks.forEach(wNum=>{
+      if(trkData[wNum]?.[section]?.Cierres){
+        trkData[wNum][section].Cierres = trkData[wNum][section].Cierres.filter(e=>!(e.n===name&&e.auto));
       }
     });
   }
+}
 
+function eliminarReserva(idx){
+  if(!confirm('¿Eliminar esta reserva? También se quitará del Trackeo Semanal.')) return;
+  const r = reservas[idx];
+  quitarDeTrackeo(r);
   reservas.splice(idx, 1);
   renderDante();
 }
@@ -2497,6 +2519,12 @@ function guardarReserva(){
       const cw = currentWeek();
       if(!trkData[cw.num][section].Ofertas) trkData[cw.num][section].Ofertas=[];
       trkData[cw.num][section].Ofertas.push({n:label, note:'Reserva tomada', auto:true});
+    }
+
+    // Si cambia de Cerrada a otro estado → quitar cierre del trackeo
+    if(!isNew && prevEstado==='Cerrada' && obj.estado!=='Cerrada'){
+      const rOld = {...reservas[danteReservaEditIdx], estado:'Cerrada'};
+      quitarDeTrackeo(rOld);
     }
 
     // Al pasar a Cerrada (nueva) O al editar fecha de cierre existente
