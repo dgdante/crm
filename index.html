@@ -2111,19 +2111,25 @@ function renderDante(){
   // ── Tabla por mes ──
   // Puntas KPI
   // Days since last offer
-  // Sort by fechaToma (exact date) if available, fallback to mesToma
-  const allOfertas = reservas.filter(r=>r.mesToma).sort((a,b)=>{
-    const da = a.fechaToma || (a.mesToma+'-15');
-    const db = b.fechaToma || (b.mesToma+'-15');
+  const _today = new Date(); _today.setHours(0,0,0,0);
+  // Only count past reservas, sort by most recent
+  const allOfertas = reservas.filter(r=>{
+    if(!r.mesToma) return false;
+    const dateStr = r.fechaToma || (r.mesToma+'-01');
+    const parts = dateStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1]-1, parts[2]);
+    return d <= _today; // only past or today
+  }).sort((a,b)=>{
+    const da = a.fechaToma || (a.mesToma+'-01');
+    const db = b.fechaToma || (b.mesToma+'-01');
     return db.localeCompare(da);
   });
   const lastOferta = allOfertas[0];
   const diasDesdeOferta = lastOferta ? (() => {
-    const dateStr = lastOferta.fechaToma || (lastOferta.mesToma + '-15');
+    const dateStr = lastOferta.fechaToma || (lastOferta.mesToma + '-01');
     const parts = dateStr.split('-').map(Number);
-    const d = new Date(parts[0], parts[1]-1, parts[2]); // local time, no UTC offset
-    const today = new Date(); today.setHours(0,0,0,0);
-    return Math.floor((today - d) / 86400000);
+    const d = new Date(parts[0], parts[1]-1, parts[2]);
+    return Math.floor((_today - d) / 86400000);
   })() : null;
   const diasColor = diasDesdeOferta===null?'#aaa':diasDesdeOferta<=30?'#3B6D11':diasDesdeOferta<=60?'#854F0B':'#A32D2D';
 
