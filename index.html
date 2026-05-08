@@ -1916,9 +1916,21 @@ function getMesesActivos(){
 }
 
 function syncReservasToTrackeo(){
-  if(typeof trkData==='undefined'||typeof WEEKS==='undefined'||!reservas.length) return;
+  if(typeof trkData==='undefined'||typeof WEEKS==='undefined') return;
 
-  // Find first week of a given YYYY-MM
+  // STEP 1: Remove ALL auto-generated Ofertas and Cierres from every week
+  WEEKS.forEach(w=>{
+    ['cart','comp'].forEach(sec=>{
+      if(trkData[w.num]?.[sec]?.Ofertas)
+        trkData[w.num][sec].Ofertas = trkData[w.num][sec].Ofertas.filter(e=>!e.auto);
+      if(trkData[w.num]?.[sec]?.Cierres)
+        trkData[w.num][sec].Cierres = trkData[w.num][sec].Cierres.filter(e=>!e.auto);
+    });
+  });
+
+  if(!reservas.length) return;
+
+  // STEP 2: Re-add from current reservas state
   const firstWeekOfMonth = ym => {
     if(!ym) return null;
     return WEEKS.find(w=>{
@@ -1927,35 +1939,40 @@ function syncReservasToTrackeo(){
     });
   };
 
-  // Find last week of a given YYYY-MM
-  const lastWeekOfMonth = ym => {
-    if(!ym) return null;
-    const matches = WEEKS.filter(w=>{
-      const wym = w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
-      return wym===ym;
+  const weekForDate = (dateStr, fallbackYm) => {
+    if(dateStr){
+      const parts=dateStr.split('-').map(Number);
+      const d=new Date(parts[0],parts[1]-1,parts[2]);
+      let w=WEEKS.find(x=>d>=x.start&&d<=x.end);
+      if(!w) w=d<=WEEKS[0].start?WEEKS[0]:WEEKS[WEEKS.length-1];
+      return w;
+    }
+    // fallback: last week of month
+    if(!fallbackYm) return null;
+    const matches=WEEKS.filter(w=>{
+      const wym=w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
+      return wym===fallbackYm;
     });
-    return matches.length ? matches[matches.length-1] : null;
+    return matches.length?matches[matches.length-1]:null;
   };
 
   reservas.forEach(r=>{
     const section = r.punta==='Vendedora' ? 'cart' : 'comp';
     const label = r.cliente;
 
-    // Retroactive: use first week of mesToma for Ofertas
+    // Add Oferta at mesToma
     const weekToma = firstWeekOfMonth(r.mesToma);
     if(weekToma){
       if(!trkData[weekToma.num][section].Ofertas) trkData[weekToma.num][section].Ofertas=[];
-      const yaOferta = trkData[weekToma.num][section].Ofertas.find(e=>e.n===label&&e.auto===true);
-      if(!yaOferta) trkData[weekToma.num][section].Ofertas.push({n:label,note:'Reserva tomada',auto:true});
+      trkData[weekToma.num][section].Ofertas.push({n:label,note:'Reserva tomada',auto:true});
     }
 
-    // Retroactive: use last week of mesCierre for Cierres
+    // Add Cierre only if Cerrada
     if(r.estado==='Cerrada'){
-      const weekCierre = lastWeekOfMonth(r.mesCierre);
+      const weekCierre = weekForDate(r.fechaCierre, r.mesCierre);
       if(weekCierre){
         if(!trkData[weekCierre.num][section].Cierres) trkData[weekCierre.num][section].Cierres=[];
-        const yaCierre = trkData[weekCierre.num][section].Cierres.find(e=>e.n===label&&e.auto===true);
-        if(!yaCierre) trkData[weekCierre.num][section].Cierres.push({n:label,note:'Cierre '+r.punta,auto:true});
+        trkData[weekCierre.num][section].Cierres.push({n:label,note:'Cierre '+r.punta,auto:true});
       }
     }
   });
@@ -2466,9 +2483,11 @@ function guardarReserva(){
   const oferta=document.getElementById('mr-oferta').value;
   const mesToma=document.getElementById('mr-mestoma').value;
   const fechaCierreVal=document.getElementById('mr-fechacierre').value||'';
-  // Derive mesCierre from exact date
-  const mesCierre=fechaCierreVal ? fechaCierreVal.slice(0,7) : document.getElementById('mr-mescierre').value;
-  if(!cliente||!oferta||!mesToma||!mesCierre){ alert('Completá los campos obligatorios.'); return; }
+  const estadoVal=document.getElementById('mr-estado').value;
+  // Derive mesCierre from exact date (only required if Cerrada)
+  const mesCierre=fechaCierreVal ? fechaCierreVal.slice(0,7) : (document.getElementById('mr-mescierre').value||mesToma);
+  if(estadoVal==='Cerrada' && !fechaCierreVal){ alert('Ingresá la fecha exacta de cierre.'); return; }
+  if(!cliente||!oferta||!mesToma){ alert('Completá los campos obligatorios.'); return; }
   const punta=document.getElementById('mr-punta').value;
   const direccion=document.getElementById('mr-dir')?.value||'';
   if(punta==='Compradora'&&!direccion){ alert('Ingresá la dirección de la propiedad.'); return; }
