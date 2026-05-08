@@ -2111,12 +2111,17 @@ function renderDante(){
   // ── Tabla por mes ──
   // Puntas KPI
   // Days since last offer
-  const allOfertas = reservas.filter(r=>r.mesToma).sort((a,b)=>b.mesToma.localeCompare(a.mesToma));
+  // Sort by fechaToma (exact date) if available, fallback to mesToma
+  const allOfertas = reservas.filter(r=>r.mesToma).sort((a,b)=>{
+    const da = a.fechaToma || (a.mesToma+'-15');
+    const db = b.fechaToma || (b.mesToma+'-15');
+    return db.localeCompare(da);
+  });
   const lastOferta = allOfertas[0];
   const diasDesdeOferta = lastOferta ? (() => {
     const dateStr = lastOferta.fechaToma || (lastOferta.mesToma + '-15');
     const parts = dateStr.split('-').map(Number);
-    const d = new Date(parts[0], parts[1]-1, parts[2]); // local time avoids UTC offset bug
+    const d = new Date(parts[0], parts[1]-1, parts[2]); // local time, no UTC offset
     const today = new Date(); today.setHours(0,0,0,0);
     return Math.floor((today - d) / 86400000);
   })() : null;
