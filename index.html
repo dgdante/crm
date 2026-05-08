@@ -1344,7 +1344,7 @@ function saveTouch(){
     touchObj.note=note||'Oferta '+ofPunta+(ofPrecio?' · $'+ofPrecio:'');
     if(ofComision){
       const ym=date.slice(0,7);
-      reservas.push({mesToma:ym,mesCierre:ym,cliente:cName,punta:ofPunta,codigo:'',procedencia:'Otro',oferta:Number(ofPrecio),comision:Number(ofComision),bolsillo:Number(ofBolsillo),estado:'En negociación',_contactId:activeId});
+      reservas.push({mesToma:ym,mesCierre:ym,fechaToma:date,cliente:cName,punta:ofPunta,codigo:'',procedencia:'Otro',oferta:Number(ofPrecio),comision:Number(ofComision),bolsillo:Number(ofBolsillo),estado:'En negociación',_contactId:activeId});
       if(typeof syncReservasToTrackeo==='function') syncReservasToTrackeo();
     } else {
       if(typeof trkData!=='undefined'){
@@ -2114,10 +2114,11 @@ function renderDante(){
   const allOfertas = reservas.filter(r=>r.mesToma).sort((a,b)=>b.mesToma.localeCompare(a.mesToma));
   const lastOferta = allOfertas[0];
   const diasDesdeOferta = lastOferta ? (() => {
-    // Use fechaToma (exact date) if available, otherwise mid-month of mesToma
-    const dateStr = lastOferta.fechaToma || (lastOferta.mesToma + '-15');  // exact date preferred
-    const d = new Date(dateStr);
-    return Math.floor((new Date() - d) / 86400000);
+    const dateStr = lastOferta.fechaToma || (lastOferta.mesToma + '-15');
+    const parts = dateStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1]-1, parts[2]); // local time avoids UTC offset bug
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Math.floor((today - d) / 86400000);
   })() : null;
   const diasColor = diasDesdeOferta===null?'#aaa':diasDesdeOferta<=30?'#3B6D11':diasDesdeOferta<=60?'#854F0B':'#A32D2D';
 
