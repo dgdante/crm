@@ -2114,7 +2114,9 @@ function renderDante(){
   const allOfertas = reservas.filter(r=>r.mesToma).sort((a,b)=>b.mesToma.localeCompare(a.mesToma));
   const lastOferta = allOfertas[0];
   const diasDesdeOferta = lastOferta ? (() => {
-    const d = new Date(lastOferta.mesToma + '-01');
+    // Use fechaToma (exact date) if available, otherwise mid-month of mesToma
+    const dateStr = lastOferta.fechaToma || (lastOferta.mesToma + '-15');  // exact date preferred
+    const d = new Date(dateStr);
     return Math.floor((new Date() - d) / 86400000);
   })() : null;
   const diasColor = diasDesdeOferta===null?'#aaa':diasDesdeOferta<=30?'#3B6D11':diasDesdeOferta<=60?'#854F0B':'#A32D2D';
@@ -2223,8 +2225,9 @@ function renderDante(){
   if(true){
     mr.innerHTML=`<div class="modal" style="max-width:480px">
       <h3 id="mr-title">Nueva reserva</h3>
-      <label class="field-label">Mes de toma de reserva <span class="req">*</span></label>
-      <input type="month" id="mr-mestoma"/>
+      <label class="field-label">Fecha exacta de toma <span class="req">*</span></label>
+      <input type="date" id="mr-fechatoma" onchange="syncMesTomaFromFecha()"/>
+      <input type="hidden" id="mr-mestoma"/>
       <div id="mr-fechacierre-wrap">
         <label class="field-label">Fecha exacta de cierre <span class="req">*</span></label>
         <input type="date" id="mr-fechacierre" onchange="syncMesCierreFromFecha()"/>
@@ -2404,7 +2407,10 @@ function abrirModalReserva(idx){
   danteReservaEditIdx=idx;
   const r=idx!==null?reservas[idx]:null;
   document.getElementById('mr-title').textContent=r?'Editar reserva':'Nueva reserva';
-  document.getElementById('mr-mestoma').value=r?.mesToma||getCurrentYM();
+  const _mt = r?.mesToma||getCurrentYM();
+  const _ft = r?.fechaToma || (_mt+'-01');
+  document.getElementById('mr-fechatoma').value=_ft;
+  document.getElementById('mr-mestoma').value=_mt;
   // Set fechacierre: use saved fechaCierre or default to last day of mesCierre
   const _mc = r?.mesCierre||getCurrentYM();
   const _fc = r?.fechaCierre || (()=>{ const [y,m]=_mc.split('-').map(Number); return _mc+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0'); })();
@@ -2451,6 +2457,11 @@ function toggleFechaCierre(){
   }
 }
 
+function syncMesTomaFromFecha(){
+  const fecha = document.getElementById('mr-fechatoma').value;
+  if(fecha) document.getElementById('mr-mestoma').value = fecha.slice(0,7);
+}
+
 function syncMesCierreFromFecha(){
   const fecha = document.getElementById('mr-fechacierre').value;
   if(fecha){
@@ -2481,7 +2492,8 @@ function seleccionarClienteReserva(id, name){
 function guardarReserva(){
   const cliente=document.getElementById('mr-cliente').value.trim();
   const oferta=document.getElementById('mr-oferta').value;
-  const mesToma=document.getElementById('mr-mestoma').value;
+  const fechaTomaVal=document.getElementById('mr-fechatoma').value||'';
+  const mesToma=fechaTomaVal ? fechaTomaVal.slice(0,7) : document.getElementById('mr-mestoma').value;
   const fechaCierreVal=document.getElementById('mr-fechacierre').value||'';
   const estadoVal=document.getElementById('mr-estado').value;
   // Derive mesCierre from exact date (only required if Cerrada)
@@ -2494,7 +2506,7 @@ function guardarReserva(){
 
   const fechaCierre = fechaCierreVal;
   const obj={
-    mesToma, mesCierre, cliente,
+    mesToma, mesCierre, cliente, fechaToma:fechaTomaVal,
     punta,
     fechaCierre,
     direccion,
