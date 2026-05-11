@@ -3755,19 +3755,33 @@ function guardarPB(){
 }
 
 function cambiarEstadoPB(i, val){
-  if(val==='En búsqueda'){
-    const pb = compradorePBs[i];
+  const pb = compradorePBs[i];
+  if(!pb) return;
+  const isEnBusqueda = PB_ESTADOS.indexOf(val) === 1; // "En búsqueda" is index 1
+  const isOperCerrada = PB_ESTADOS.indexOf(val) === 2; // "Operación cerrada" is index 2
+
+  if(isEnBusqueda){
     compradoresProsp.push({
       nombre: pb.contactName||pb.nombre||'',
       busqueda: pb.busqueda||pb.property||'',
       presupuesto: pb.presupuesto||'',
       estado: 'activo',
-      fechaAlta: new Date().toISOString().split('T')[0],
+      fechaIngreso: new Date().toISOString().split('T')[0],
+      nota: pb.nota||''
+    });
+    compradorePBs.splice(i, 1);
+  } else if(isOperCerrada){
+    if(!compradoresVendidos) compradoresVendidos=[];
+    compradoresVendidos.push({
+      nombre: pb.contactName||pb.nombre||'',
+      busqueda: pb.busqueda||pb.property||'',
+      presupuesto: pb.presupuesto||'',
+      fechaCierre: new Date().toISOString().split('T')[0],
       nota: pb.nota||''
     });
     compradorePBs.splice(i, 1);
   } else {
-    compradorePBs[i].estado=val;
+    compradorePBs[i].estado = val;
   }
   renderCompradores();
 }
