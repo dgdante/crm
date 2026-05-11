@@ -187,7 +187,9 @@ async function loadFromSheets() {
     if(d.opps)        opps=d.opps;
     if(d.oppCounters) oppCounters=d.oppCounters;
     if(d.carteraProps) carteraProps=d.carteraProps;
-    if(d.carteraPLs)  carteraPLs=d.carteraPLs;
+    if(d.carteraPLs)    carteraPLs=d.carteraPLs;
+    if(d.potencialesPL) potencialesPL=d.potencialesPL;
+    if(d.potencialesPB) potencialesPB=d.potencialesPB;
     if(d.propiedadesVendidas) propiedadesVendidas=d.propiedadesVendidas;
     if(d.compradoresProsp) compradoresProsp=d.compradoresProsp;
     if(d.compradorePBs) compradorePBs=d.compradorePBs;
@@ -3755,16 +3757,14 @@ function guardarPB(){
 function cambiarEstadoPB(i, val){
   if(val==='En búsqueda'){
     const pb = compradorePBs[i];
-    // Move to active compradores
     compradoresProsp.push({
-      nombre: pb.contactName||'',
-      busqueda: pb.busqueda||'',
+      nombre: pb.contactName||pb.nombre||'',
+      busqueda: pb.busqueda||pb.property||'',
       presupuesto: pb.presupuesto||'',
-      estado: 'Activo',
-      fecha: new Date().toISOString().split('T')[0],
+      estado: 'activo',
+      fechaAlta: new Date().toISOString().split('T')[0],
       nota: pb.nota||''
     });
-    // Remove from prebuyings
     compradorePBs.splice(i, 1);
   } else {
     compradorePBs[i].estado=val;
