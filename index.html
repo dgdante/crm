@@ -957,7 +957,7 @@ function openModal(id){
 
   // Show contact stats
   const ts = touches[id]||[];
-  const verdes = ['cafe','popby','evento','oferta','bajaprecio','prelisting','prebuying','llamadoverde','referido'];
+  const verdes = ['cafe','popby','evento','oferta','bajaprecio','prelisting','prebuying','llamadoverde','referido','potencialpl','potencialpb'];
   const nVerdes = ts.filter(t=>verdes.includes(t.type)).length;
   const nPL = ts.filter(t=>t.type==='prelisting').length;
   const nPB = ts.filter(t=>t.type==='prebuying').length;
@@ -3753,7 +3753,22 @@ function guardarPB(){
 }
 
 function cambiarEstadoPB(i, val){
-  compradorePBs[i].estado=val;
+  if(val==='En búsqueda'){
+    const pb = compradorePBs[i];
+    // Move to active compradores
+    compradoresProsp.push({
+      nombre: pb.contactName||'',
+      busqueda: pb.busqueda||'',
+      presupuesto: pb.presupuesto||'',
+      estado: 'Activo',
+      fecha: new Date().toISOString().split('T')[0],
+      nota: pb.nota||''
+    });
+    // Remove from prebuyings
+    compradorePBs.splice(i, 1);
+  } else {
+    compradorePBs[i].estado=val;
+  }
   renderCompradores();
 }
 </script>
