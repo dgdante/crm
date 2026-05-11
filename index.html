@@ -3783,9 +3783,9 @@ function cambiarEstadoPB(i, val){
       fechaIngreso: new Date().toISOString().split('T')[0],
       nota: pb.nota||''
     });
-    compradorePBs = compradorePBs.filter((_,idx)=>idx!==i);
+    compradorePBs.splice(i, 1); // in-place removal
   } else if(val === PB_ESTADOS[2]){ // "Operación cerrada" → pasar a cerrados
-    compradoresVendidos = compradoresVendidos||[];
+    if(!compradoresVendidos) compradoresVendidos=[];
     compradoresVendidos.push({
       nombre: pb.contactName||pb.nombre||'',
       busqueda: pb.busqueda||pb.property||'',
@@ -3793,11 +3793,13 @@ function cambiarEstadoPB(i, val){
       fechaCierre: new Date().toISOString().split('T')[0],
       nota: pb.nota||''
     });
-    compradorePBs = compradorePBs.filter((_,idx)=>idx!==i);
+    compradorePBs.splice(i, 1); // in-place removal
   } else {
     compradorePBs[i].estado = val;
   }
-  renderCompradores();
+  // Force re-render
+  const el = document.getElementById('tab-compradores');
+  if(el) renderCompradores();
 }
 </script>
 <script>
