@@ -44,6 +44,8 @@ td{padding:9px 12px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-
 .tag-almuerzo{background:#EAF3DE;color:#27500A}
 .tag-popby{background:#EAF3DE;color:#27500A}
 .tag-llamadoverde{background:#EAF3DE;color:#27500A}
+.tag-potencialpl{background:#F0EEFE;color:#3C3489}
+.tag-potencialpb{background:#E8F5EE;color:#085041}
 .tag-evento{background:#EAF3DE;color:#27500A}
 .tag-bajaprecio{background:#E6F1FB;color:#0C447C}
 .tag-oferta{background:#E6F1FB;color:#0C447C}
@@ -138,7 +140,7 @@ async function saveToSheets() {
   Object.keys(touches).forEach(k=>{ if(touches[k]&&touches[k].length>0) touchesToSave[k]=touches[k]; });
   const data = {
     touches: touchesToSave, tiers: tiersToSave, opps, oppCounters,
-    carteraProps, carteraPLs, propiedadesVendidas,
+    carteraProps, carteraPLs, potencialesPL, propiedadesVendidas, potencialesPB,
     compradoresProsp, compradorePBs, compradoresVendidos,
     reservas, objetivosMes, gastos, trkData
   };
@@ -455,6 +457,8 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
         <option value="prelisting">PreListing</option>
         <option value="prebuying">PreBuying</option>
         <option value="llamadoverde">Llamado Verde</option>
+        <option value="potencialpl">Potencial PreListing</option>
+        <option value="potencialpb">Potencial PreBuying</option>
       </optgroup>
       <optgroup label="No suman a las verdes">
         <option value="referido">Referido</option>
@@ -1038,7 +1042,7 @@ function onTipoTouqueChange(){
   }
 
   // ── Campo de inversión para todos los toques verdes simples ──
-  const verdesSimples = ['cafe','popby','evento','llamadoverde','bajaprecio'];
+  const verdesSimples = ['cafe','popby','evento','llamadoverde','bajaprecio','potencialpl','potencialpb'];
   if(verdesSimples.includes(type)){
     el.innerHTML += `
       <label class="field-label" style="margin-top:8px">💰 Inversión del toque (opcional)</label>
@@ -1365,10 +1369,18 @@ function saveTouch(){
     if(type==='bajaprecio'){
       if(!trkData[wNum].cart.BP) trkData[wNum].cart.BP=[];
       trkData[wNum].cart.BP.push({n:cName,note:'Baja de precio',auto:false});
-    } else if(['cafe','popby','evento','llamadoverde'].includes(type)){
+    } else if(['cafe','popby','evento','llamadoverde','potencialpl','potencialpb'].includes(type)){
       if(!trkData[wNum].prosp.Reuniones) trkData[wNum].prosp.Reuniones=[];
       trkData[wNum].prosp.Reuniones.push({n:cName,note:type,auto:false});
     }
+  }
+
+  // ── Potencial PL/PB → registro ──
+  if(type==='potencialpl'){
+    potencialesPL.push({contactName:cName,contactId:activeId,fecha:date,nota:touchObj.note||''});
+  }
+  if(type==='potencialpb'){
+    potencialesPB.push({contactName:cName,contactId:activeId,fecha:date,nota:touchObj.note||''});
   }
 
   closeModal();updateStats();applyFilters();checkBirthdays();
@@ -1492,6 +1504,8 @@ document.getElementById('opp-overlay').addEventListener('click',function(e){if(e
 // ══════════════════════════════════════════════════
 let carteraProps = [];
 let carteraPLs   = [];
+let potencialesPL = [];
+let potencialesPB = [];
 let propiedadesVendidas = [];
 const PROP_TIPOS = ['Departamento','Casa','PH','Local comercial','Oficina','Terreno'];
 const PL_ESTADOS = ['Pendiente','Captada','Postergada','Perdida'];
@@ -1654,6 +1668,21 @@ function renderCartera(){
         <td style="font-size:12px;color:#888">${p.clienteVenta||p.duenio||'—'}</td>
         <td style="font-size:12px;color:#888">${p.mesCierre||p.fechaVenta?.slice(0,7)||'—'}</td>
       </tr>`;
+    });
+    h += '</tbody></table></div></div>';
+  }
+
+  // ── Registro de Potenciales PreListings ──
+  if(potencialesPL.length > 0){
+    h += '<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Potenciales PreListings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">'+potencialesPL.length+' contacto'+( potencialesPL.length!==1?'s':'')+'</span></div>';
+    h += '<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:500px"><thead><tr><th>Contacto</th><th>Fecha</th><th>Nota</th><th></th></tr></thead><tbody>';
+    potencialesPL.forEach((p,i)=>{
+      h += '<tr>';
+      h += '<td style="font-weight:500;font-size:12px">'+( p.contactName||'—')+'</td>';
+      h += '<td style="font-size:12px;color:#888">'+( p.fecha||'—')+'</td>';
+      h += '<td style="font-size:12px;color:#aaa">'+( p.nota||'—')+'</td>';
+      h += '<td><button onclick="eliminarPotencialPL('+i+')" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">Eliminar</button></td>';
+      h += '</tr>';
     });
     h += '</tbody></table></div></div>';
   }
@@ -1859,6 +1888,18 @@ function cambiarEstadoPL(i, val){
     // Remove from PreListings registro — ya está en Cartera
     carteraPLs.splice(i, 1);
   }
+  renderCartera();
+}
+
+function eliminarPotencialPB(i){
+  if(!confirm('¿Eliminar este potencial comprador?')) return;
+  potencialesPB.splice(i,1);
+  renderCompradores();
+}
+
+function eliminarPotencialPL(i){
+  if(!confirm('¿Eliminar este potencial PreListing?')) return;
+  potencialesPL.splice(i,1);
   renderCartera();
 }
 
@@ -3580,6 +3621,21 @@ function renderCompradores(){
         <td style="font-size:12px;color:#888">${r.mesToma||'—'}</td>
         <td style="font-size:12px;color:#aaa">${r.nota||'—'}</td>
       </tr>`;
+    });
+    h += '</tbody></table></div></div>';
+  }
+
+  // ── Registro de Potenciales Compradores ──
+  if(potencialesPB.length > 0){
+    h += '<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Potenciales Compradores <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">'+potencialesPB.length+' contacto'+(potencialesPB.length!==1?'s':'')+'</span></div>';
+    h += '<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:500px"><thead><tr><th>Contacto</th><th>Fecha</th><th>Nota</th><th></th></tr></thead><tbody>';
+    potencialesPB.forEach((p,i)=>{
+      h += '<tr>';
+      h += '<td style="font-weight:500;font-size:12px">'+(p.contactName||'—')+'</td>';
+      h += '<td style="font-size:12px;color:#888">'+(p.fecha||'—')+'</td>';
+      h += '<td style="font-size:12px;color:#aaa">'+(p.nota||'—')+'</td>';
+      h += '<td><button onclick="eliminarPotencialPB('+i+')" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">Eliminar</button></td>';
+      h += '</tr>';
     });
     h += '</tbody></table></div></div>';
   }
