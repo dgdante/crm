@@ -1973,6 +1973,45 @@ function getMesesActivos(){
   return Array.from(ym).sort();
 }
 
+function syncTouchesFromReservas(){
+  // Retroactively register oferta and cierre touches for all reservas
+  if(!reservas || !contacts || !touches) return;
+  reservas.forEach(r=>{
+    if(!r.cliente) return;
+    const contact = contacts.find(c=>c.name===r.cliente);
+    if(!contact) return;
+    const cid = contact.id;
+    if(!touches[cid]) touches[cid]=[];
+
+    const ofertaTipo = 'oferta';
+    const cierreTipo = r.punta==='Vendedora'?'cierrevendedor':'cierrecomprador';
+    const ofertaDate = r.fechaToma || (r.mesToma ? r.mesToma+'-01' : null);
+    const cierreDate = r.fechaCierre || (r.mesCierre ? r.mesCierre+'-01' : null);
+
+    // Add oferta touch if not already registered
+    const yaOferta = touches[cid].find(t=>
+      t.type===ofertaTipo &&
+      t.note && t.note.includes('Facturación') &&
+      t.date===ofertaDate
+    );
+    if(ofertaDate && !yaOferta){
+      touches[cid].push({type:ofertaTipo, date:ofertaDate, note:'Oferta desde Facturación', _auto:true});
+    }
+
+    // Add cierre touch if reserva is Cerrada and not already registered
+    if(r.estado==='Cerrada' && cierreDate){
+      const yaCierre = touches[cid].find(t=>
+        (t.type==='cierrevendedor'||t.type==='cierrecomprador') &&
+        t.note && t.note.includes('Facturación') &&
+        t.date===cierreDate
+      );
+      if(!yaCierre){
+        touches[cid].push({type:cierreTipo, date:cierreDate, note:'Cierre desde Facturación', _auto:true});
+      }
+    }
+  });
+}
+
 function syncReservasToTrackeo(){
   if(typeof trkData==='undefined'||typeof WEEKS==='undefined') return;
 
@@ -2040,6 +2079,7 @@ function renderDante(){
   const el = document.getElementById('dante-view');
   if(!el) return;
   syncReservasToTrackeo();
+  syncTouchesFromReservas();
 
   const curYM = getCurrentYM();
   const mesesActivos = getMesesActivos();
