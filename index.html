@@ -1973,6 +1973,22 @@ function getMesesActivos(){
   return Array.from(ym).sort();
 }
 
+function syncTouchesManual(){
+  if(!contacts || contacts.length===0){
+    alert('Primero importá el CSV para tener los contactos cargados.');
+    return;
+  }
+  syncTouchesFromReservas();
+  // Count what was added
+  let added = 0;
+  reservas.forEach(r=>{
+    if(!r.cliente) return;
+    const c = contacts.find(x=>x.name===r.cliente);
+    if(c && touches[c.id]) added++;
+  });
+  alert('✓ Toques sincronizados correctamente. Abrí Data Base para verlos.');
+}
+
 function syncTouchesFromReservas(){
   // Retroactively register oferta and cierre touches for all reservas
   if(!reservas || !contacts || !touches) return;
@@ -2079,7 +2095,6 @@ function renderDante(){
   const el = document.getElementById('dante-view');
   if(!el) return;
   syncReservasToTrackeo();
-  syncTouchesFromReservas();
 
   const curYM = getCurrentYM();
   const mesesActivos = getMesesActivos();
@@ -2107,7 +2122,10 @@ function renderDante(){
   h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
     <div><div style="font-size:18px;font-weight:500">Dante Reservas</div>
     <div style="font-size:13px;color:#888;margin-top:2px">Reservas, facturación y seguimiento de operaciones</div></div>
-    <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
+      <button class="btn-sec" style="font-size:12px;padding:7px 12px" onclick="syncTouchesManual()" title="Sincroniza los toques de oferta y cierre con la Data Base">🔄 Sincronizar toques</button>
+    </div>
   </div>`;
 
   // Barra objetivo anual
