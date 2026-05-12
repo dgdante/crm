@@ -1893,6 +1893,21 @@ function cambiarEstadoPL(i, val){
   renderCartera();
 }
 
+function eliminarPB(i){
+  if(!confirm('¿Eliminar este PreBuying?')) return;
+  compradorePBs.splice(i, 1);
+  renderCompradores();
+}
+function eliminarActivo(i){
+  if(!confirm('¿Eliminar este comprador activo?')) return;
+  compradoresProsp.splice(i, 1);
+  renderCompradores();
+}
+function eliminarCerrado(i){
+  if(!confirm('¿Eliminar este comprador cerrado?')) return;
+  compradoresVendidos.splice(compradoresVendidos.length-1-i, 1);
+  renderCompradores();
+}
 function eliminarPotencialPB(i){
   if(!confirm('¿Eliminar este potencial comprador?')) return;
   potencialesPB.splice(i,1);
@@ -3556,7 +3571,7 @@ function renderCompradores(){
           <option value="perdido" ${p.estado==='perdido'?'selected':''}>Perdido</option>
         </select></td>
         <td style="color:${diasColor};font-size:12px">${typeof diasActivo==='number'?diasActivo+'d':diasActivo}</td>
-        <td><button onclick="abrirModalComprador(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px">Editar</button></td>
+        <td><button onclick="abrirModalComprador(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">Editar</button><button onclick="eliminarActivo(${idx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button></td>
       </tr>`;
     });
   }
@@ -3577,14 +3592,14 @@ function renderCompradores(){
   if(!compradorePBs.length){
     h += '<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreBuyings aún. Se sincronizan automáticamente desde los toques con resultado PB.</td></tr>';
   } else {
-    compradorePBs.forEach((pb,i)=>{
+    compradorePBs.filter(pb=>!pb._movido).forEach((pb,i)=>{ const realIdx=compradorePBs.indexOf(pb);
       const di = pb.fecha ? Math.floor((new Date()-new Date(pb.fecha))/86400000) : '—';
       h += `<tr>
         <td><span class="tracking-num">${pb.trackingNum||'—'}</span></td>
         <td>${pb.contactName||'—'}</td>
         <td style="font-size:12px;color:#888">${pb.busqueda||'—'}</td>
         <td><span class="tag tag-otro" style="font-size:11px">${pb.tipo||'—'}</span></td>
-        <td><select onchange="cambiarEstadoPB(${i},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+        <td><select onchange="cambiarEstadoPB(${realIdx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
           ${PB_ESTADOS.map(e=>`<option value="${e}" ${pb.estado===e?'selected':''}>${e}</option>`).join('')}
         </select></td>
         <td style="font-size:12px;color:#888">${pb.fecha?pb.fecha.slice(5).replace('-','/'):'—'}${typeof di==='number'?' ('+di+'d)':''}</td>
@@ -3653,6 +3668,7 @@ function renderCompradores(){
       h += '<td style="font-size:12px;color:#888">'+(c.presupuesto?'$'+Number(c.presupuesto).toLocaleString('es-AR'):'—')+'</td>';
       h += '<td style="font-size:12px;color:#888">'+(c.fechaCierre||'—')+'</td>';
       h += '<td style="font-size:12px;color:#aaa">'+(c.nota||'—')+'</td>';
+      h += '<td><button onclick="eliminarCerrado('+i+')" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button></td>';
       h += '</tr>';
     });
     h += '</tbody></table></div></div>';
@@ -3783,7 +3799,7 @@ function cambiarEstadoPB(i, val){
       fechaIngreso: new Date().toISOString().split('T')[0],
       nota: pb.nota||''
     });
-    compradorePBs.splice(i, 1); // in-place removal
+    compradorePBs[i]._movido = true; // mark as moved
   } else if(val === PB_ESTADOS[2]){ // "Operación cerrada" → pasar a cerrados
     if(!compradoresVendidos) compradoresVendidos=[];
     compradoresVendidos.push({
@@ -3793,13 +3809,11 @@ function cambiarEstadoPB(i, val){
       fechaCierre: new Date().toISOString().split('T')[0],
       nota: pb.nota||''
     });
-    compradorePBs.splice(i, 1); // in-place removal
+    compradorePBs[i]._movido = true; // mark as moved
   } else {
     compradorePBs[i].estado = val;
   }
-  // Force re-render
-  const el = document.getElementById('tab-compradores');
-  if(el) renderCompradores();
+  renderCompradores();
 }
 </script>
 <script>
