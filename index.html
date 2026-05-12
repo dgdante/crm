@@ -3918,108 +3918,140 @@ function calcMetricsFromData(d){
   const trk = d.trkData || {};
   const weeks = Object.keys(trk);
   const sum = (sec, field) => weeks.reduce((s,w)=>{
-    const num = parseInt(w);
-    return s + (trk[num]?.[sec]?.[field]||[]).length;
+    const n=parseInt(w); return s+(trk[n]?.[sec]?.[field]||[]).length;
   }, 0);
   const verdes = weeks.reduce((s,w)=>{
-    const num = parseInt(w);
-    const t = trk[num];
-    if(!t) return s;
-    return s +
-      (t.prosp?.Reuniones||[]).length +
-      (t.cart?.PL||[]).length +
-      (t.cart?.BP||[]).length +
-      (t.cart?.Ofertas||[]).length +
-      (t.cart?.Cierres||[]).length +
-      (t.comp?.PB||[]).length +
-      (t.comp?.Ofertas||[]).length +
-      (t.comp?.Cierres||[]).length;
+    const n=parseInt(w); const t=trk[n]; if(!t) return s;
+    return s+(t.prosp?.Reuniones||[]).length+(t.cart?.PL||[]).length+(t.cart?.BP||[]).length
+      +(t.cart?.Ofertas||[]).length+(t.cart?.Cierres||[]).length
+      +(t.comp?.PB||[]).length+(t.comp?.Ofertas||[]).length+(t.comp?.Cierres||[]).length;
   }, 0);
   const res = d.reservas || [];
   const facturacion = res.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
-  const nSem = Math.max(weeks.filter(w=>{ const n=parseInt(w); return (trk[n]?.prosp?.Reuniones||[]).length+(trk[n]?.cart?.PL||[]).length+(trk[n]?.comp?.PB||[]).length>0; }).length, 1);
-  return {
-    verdes, nSem,
-    verdesProm: (verdes/nSem).toFixed(1),
-    pl: sum('cart','PL'),
-    pb: sum('comp','PB'),
-    capt: sum('cart','Capt'),
-    facturacion
-  };
+  const pendientes  = res.filter(r=>r.estado==='En negociación').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const aceptadas   = res.filter(r=>r.estado==='Aceptada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const objAnual    = (d.objetivosMes && d.objetivosMes['anual']) ? Number(d.objetivosMes['anual']) : 0;
+  const pctLogro    = objAnual > 0 ? Math.round(facturacion / objAnual * 100) : null;
+  const nSem = Math.max(weeks.filter(w=>{ const n=parseInt(w);
+    return (trk[n]?.prosp?.Reuniones||[]).length+(trk[n]?.cart?.PL||[]).length+(trk[n]?.comp?.PB||[]).length>0;
+  }).length, 1);
+  return { verdes, nSem, verdesProm:(verdes/nSem).toFixed(1),
+    pl:sum('cart','PL'), pb:sum('comp','PB'), capt:sum('cart','Capt'),
+    facturacion, pendientes, aceptadas, objAnual, pctLogro };
 }
 
 async function renderTeam(){
   const el = document.getElementById('tab-team');
   if(!el) return;
-  el.innerHTML = '<div style="padding:2rem;text-align:center;color:#aaa">Cargando datos del equipo...</div>';
 
-  // Fetch team data
-  const teamData = {};
-  await Promise.all(Object.entries(TEAM_URLS).map(async ([name, url])=>{
-    teamData[name] = calcMetricsFromData(await fetchTeamData(url));
-  }));
-
-  // My own data
+  // Dante's own data (immediate)
   const myWeeks = typeof WEEKS!=='undefined' ? WEEKS : [];
   const sum2 = (sec,field) => myWeeks.reduce((s,w)=>s+(trkData[w.num]?.[sec]?.[field]||[]).length,0);
-  const myVerdes = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>{
+  const myVerdes = myWeeks.reduce((s,w)=>{
     const t=trkData[w.num]; if(!t) return s;
-    return s+(t.prosp?.Reuniones||[]).length+(t.cart?.PL||[]).length+(t.cart?.BP||[]).length+(t.cart?.Ofertas||[]).length+(t.cart?.Cierres||[]).length+(t.comp?.PB||[]).length+(t.comp?.Ofertas||[]).length+(t.comp?.Cierres||[]).length;
-  },0) : 0;
-  const myNSem = Math.max(myWeeks.filter(w=>calcRV(w.num)>0).length,1);
-  const myFac = typeof reservas!=='undefined'?reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0):0;
-  teamData['Dante (yo)'] = {
-    verdes:myVerdes, nSem:myNSem, verdesProm:(myVerdes/myNSem).toFixed(1),
-    pl:sum2('cart','PL'), pb:sum2('comp','PB'), capt:sum2('cart','Capt'), facturacion:myFac
+    return s+(t.prosp?.Reuniones||[]).length+(t.cart?.PL||[]).length+(t.cart?.BP||[]).length
+      +(t.cart?.Ofertas||[]).length+(t.cart?.Cierres||[]).length
+      +(t.comp?.PB||[]).length+(t.comp?.Ofertas||[]).length+(t.comp?.Cierres||[]).length;
+  },0);
+  const myNSem  = Math.max(myWeeks.filter(w=>calcRV(w.num)>0).length,1);
+  const myFac   = typeof reservas!=='undefined'?reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0):0;
+  const myPend  = typeof reservas!=='undefined'?reservas.filter(r=>r.estado==='En negociación').reduce((s,r)=>s+(Number(r.comision)||0),0):0;
+  const myAcep  = typeof reservas!=='undefined'?reservas.filter(r=>r.estado==='Aceptada').reduce((s,r)=>s+(Number(r.comision)||0),0):0;
+  const myObj   = typeof objetivosMes!=='undefined'?(objetivosMes['anual']||0):0;
+  const myPct   = myObj>0?Math.round(myFac/myObj*100):null;
+
+  const teamData = {
+    'Dante (yo)': { verdes:myVerdes, nSem:myNSem, verdesProm:(myVerdes/myNSem).toFixed(1),
+      pl:sum2('cart','PL'), pb:sum2('comp','PB'), capt:sum2('cart','Capt'),
+      facturacion:myFac, pendientes:myPend, aceptadas:myAcep, objAnual:myObj, pctLogro:myPct },
+    'Yoyi':   'loading',
+    'Hernán': 'loading'
   };
 
-  const fmtU = n=>'$'+Number(n||0).toLocaleString('es-AR');
-  const members = ['Dante (yo)','Yoyi','Hernán'];
-  const colors = {'Dante (yo)':'#185FA5','Yoyi':'#534AB7','Hernán':'#085041'};
+  const renderAll = () => {
+    const fmtU = n => n ? '$'+Number(n).toLocaleString('es-AR') : '—';
+    const members = ['Dante (yo)','Yoyi','Hernán'];
+    const colors  = {'Dante (yo)':'#185FA5','Yoyi':'#534AB7','Hernán':'#085041'};
 
-  let h = `<div style="padding:.5rem 0 1.25rem">
-    <div style="font-size:18px;font-weight:500">Team consolidado</div>
-    <div style="font-size:13px;color:#888;margin-top:2px">Métricas acumuladas 2026</div>
-  </div>`;
+    const METRICS = [
+      {key:'verdes',      label:'🟢 Verdes',         fmt:v=>v??'—'},
+      {key:'verdesProm',  label:'Verdes / sem',       fmt:v=>v??'—', noPct:true},
+      {key:'pl',          label:'PreListings',         fmt:v=>v??'—'},
+      {key:'pb',          label:'PreBuyings',          fmt:v=>v??'—'},
+      {key:'capt',        label:'Captaciones',         fmt:v=>v??'—'},
+      {key:'facturacion', label:'Facturación',         fmt:fmtU},
+      {key:'pendientes',  label:'En negociación ($)',  fmt:fmtU},
+      {key:'aceptadas',   label:'Aceptadas ($)',       fmt:fmtU},
+      {key:'objAnual',    label:'Objetivo anual',      fmt:fmtU, noPct:true},
+      {key:'pctLogro',    label:'% Logro objetivo',    fmt:v=>v!=null?v+'%':'—', noPct:true},
+    ];
 
-  // Table
-  h += `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
-    <thead><tr style="border-bottom:2px solid #e0dfd8">
-      <th style="text-align:left;padding:10px 12px;font-weight:500;color:#888">Vendedor</th>
-      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">🟢 Verdes/sem</th>
-      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">Total verdes</th>
-      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">PreListings</th>
-      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">PreBuyings</th>
-      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">Captaciones</th>
-      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">Facturación</th>
-    </tr></thead><tbody>`;
+    // Compute totals
+    const totals = {};
+    METRICS.forEach(m=>{ totals[m.key]=0; });
+    members.forEach(n=>{ const d=teamData[n]; if(d&&d!=='loading'){ METRICS.forEach(m=>{ totals[m.key]+=(Number(d[m.key])||0); }); }});
 
-  members.forEach(name=>{
-    const d = teamData[name];
-    const color = colors[name]||'#1a1a1a';
-    if(!d){
-      h += `<tr style="border-bottom:1px solid #f0efe9">
-        <td style="padding:12px;font-weight:500;color:${color}">${name}</td>
-        <td colspan="6" style="text-align:center;color:#aaa;font-size:12px">Sin datos disponibles</td>
-      </tr>`;
-    } else {
-      h += `<tr style="border-bottom:1px solid #f0efe9">
-        <td style="padding:12px;font-weight:500;color:${color}">${name}</td>
-        <td style="text-align:center;padding:12px 8px;font-weight:500">${d.verdesProm}</td>
-        <td style="text-align:center;padding:12px 8px">${d.verdes}</td>
-        <td style="text-align:center;padding:12px 8px">${d.pl}</td>
-        <td style="text-align:center;padding:12px 8px">${d.pb}</td>
-        <td style="text-align:center;padding:12px 8px">${d.capt}</td>
-        <td style="text-align:center;padding:12px 8px;font-weight:500;color:#3B6D11">${fmtU(d.facturacion)}</td>
-      </tr>`;
-    }
-  });
+    const pct = (val,tot) => tot>0 ? Math.round((val||0)/tot*100)+'%' : '';
 
-  h += `</tbody></table></div>
-  <div style="font-size:11px;color:#aaa;margin-top:8px;text-align:right">Actualizado al abrir esta solapa</div>`;
+    let h = `<div style="padding:.5rem 0 1rem;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:18px;font-weight:500">Team consolidado</div>
+        <div style="font-size:13px;color:#888">Métricas acumuladas 2026</div>
+      </div>
+    </div>`;
 
-  el.innerHTML = h;
+    // Member cards
+    members.forEach(name=>{
+      const d = teamData[name];
+      const color = colors[name]||'#1a1a1a';
+      h += `<div style="background:#fff;border:1px solid #e0dfd8;border-left:4px solid ${color};border-radius:10px;padding:14px 18px;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:600;color:${color};margin-bottom:10px">${name}</div>`;
+      if(d==='loading'){
+        h += `<div style="color:#aaa;font-size:12px">⏳ Cargando datos...</div>`;
+      } else if(!d){
+        h += `<div style="color:#aaa;font-size:12px">Sin datos aún</div>`;
+      } else {
+        h += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">`;
+        METRICS.forEach(m=>{
+          const val = d[m.key];
+          const p = m.noPct ? '' : pct(Number(val)||0, totals[m.key]);
+          const logroColor = m.key==='pctLogro'&&val!=null?(val>=100?'#3B6D11':val>=70?'#854F0B':'#A32D2D'):'#1a1a1a';
+          h += `<div style="background:#f8f7f4;border-radius:8px;padding:8px 10px">
+            <div style="font-size:10px;color:#aaa;margin-bottom:3px">${m.label}</div>
+            <div style="font-size:18px;font-weight:500;color:${logroColor}">${m.fmt(val)}</div>
+            ${p?`<div style="font-size:10px;color:#888">${p} del team</div>`:''}
+          </div>`;
+        });
+        h += `</div>`;
+      }
+      h += `</div>`;
+    });
+
+    // Team total
+    h += `<div style="background:#1a1a1a;border-radius:10px;padding:14px 18px;margin-top:4px">
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;letter-spacing:.05em">▸ TOTAL TEAM</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">`;
+    METRICS.filter(m=>!m.noPct||m.key==='objAnual').forEach(m=>{
+      h += `<div style="background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">
+        <div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">${m.label}</div>
+        <div style="font-size:18px;font-weight:500;color:#fff">${m.fmt(totals[m.key]||0)}</div>
+      </div>`;
+    });
+    h += `</div></div>
+    <div style="font-size:11px;color:#aaa;margin-top:8px;text-align:right">Actualizado al abrir esta solapa</div>`;
+
+    el.innerHTML = h;
+  };
+
+  renderAll(); // Show Dante immediately
+
+  // Load team async
+  await Promise.all(Object.entries(TEAM_URLS).map(async ([name, url])=>{
+    teamData[name] = calcMetricsFromData(await fetchTeamData(url));
+    renderAll();
+  }));
 }
+
 
 function renderTeam_legacy(){
   const el = document.getElementById('tab-team');
