@@ -2600,10 +2600,19 @@ function guardarReserva(){
     if(!touches[clienteId]) touches[clienteId]=[];
     touches[clienteId].push({type:'oferta', date:obj.mesToma+'-01', note:'Oferta '+obj.punta+' desde Facturación'});
   }
-  // On closing: register cierre touch
-  if(clienteId && obj.estado==='Cerrada' && prevEstado!=='Cerrada'){
-    if(!touches[clienteId]) touches[clienteId]=[];
-    touches[clienteId].push({type: obj.punta==='Vendedora'?'cierrevendedor':'cierrecomprador', date:obj.mesCierre+'-01', note:'Cierre desde Facturación'});
+  // On closing: register cierre touch (find contact by name if clienteId missing)
+  if(obj.estado==='Cerrada' && prevEstado!=='Cerrada'){
+    let cierreContactId = clienteId;
+    if(!cierreContactId && obj.cliente){
+      const found = contacts.find(c=>c.name===obj.cliente);
+      if(found) cierreContactId = found.id;
+    }
+    if(cierreContactId){
+      if(!touches[cierreContactId]) touches[cierreContactId]=[];
+      const cierreDate = fechaCierre || (obj.mesCierre+'-01');
+      const cierreTipo = obj.punta==='Vendedora'?'cierrevendedor':'cierrecomprador';
+      touches[cierreContactId].push({type:cierreTipo, date:cierreDate, note:'Cierre desde Facturación'});
+    }
   }
 
   // ── Sync → Trackeo Semanal ──
