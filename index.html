@@ -3900,7 +3900,128 @@ function cambiarEstadoPB(i, val){
 // ══════════════════════════════════════════════════
 //  TEAM CONSOLIDADO
 // ══════════════════════════════════════════════════
-function renderTeam(){
+const TEAM_URLS = {
+  'Yoyi':   'https://script.google.com/macros/s/AKfycbyKnfAzebCTM5de3eoF3PF9Rmk-MZ5Yt26k5HSQ-SuNqBHxIkblqs30BysqYpYWHBg-/exec',
+  'Hernán': 'https://script.google.com/macros/s/AKfycbytqvEuSltyH-rGadmh2N8fXZMZ8Qw1Ka8G5-DiZG9gZcU4jrBwWMKa7sc0TXRzK6qA/exec'
+};
+
+async function fetchTeamData(url){
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    return j.ok ? JSON.parse(j.data) : null;
+  } catch(e){ return null; }
+}
+
+function calcMetricsFromData(d){
+  if(!d) return null;
+  const trk = d.trkData || {};
+  const weeks = Object.keys(trk);
+  const sum = (sec, field) => weeks.reduce((s,w)=>{
+    const num = parseInt(w);
+    return s + (trk[num]?.[sec]?.[field]||[]).length;
+  }, 0);
+  const verdes = weeks.reduce((s,w)=>{
+    const num = parseInt(w);
+    const t = trk[num];
+    if(!t) return s;
+    return s +
+      (t.prosp?.Reuniones||[]).length +
+      (t.cart?.PL||[]).length +
+      (t.cart?.BP||[]).length +
+      (t.cart?.Ofertas||[]).length +
+      (t.cart?.Cierres||[]).length +
+      (t.comp?.PB||[]).length +
+      (t.comp?.Ofertas||[]).length +
+      (t.comp?.Cierres||[]).length;
+  }, 0);
+  const res = d.reservas || [];
+  const facturacion = res.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const nSem = Math.max(weeks.filter(w=>{ const n=parseInt(w); return (trk[n]?.prosp?.Reuniones||[]).length+(trk[n]?.cart?.PL||[]).length+(trk[n]?.comp?.PB||[]).length>0; }).length, 1);
+  return {
+    verdes, nSem,
+    verdesProm: (verdes/nSem).toFixed(1),
+    pl: sum('cart','PL'),
+    pb: sum('comp','PB'),
+    capt: sum('cart','Capt'),
+    facturacion
+  };
+}
+
+async function renderTeam(){
+  const el = document.getElementById('tab-team');
+  if(!el) return;
+  el.innerHTML = '<div style="padding:2rem;text-align:center;color:#aaa">Cargando datos del equipo...</div>';
+
+  // Fetch team data
+  const teamData = {};
+  await Promise.all(Object.entries(TEAM_URLS).map(async ([name, url])=>{
+    teamData[name] = calcMetricsFromData(await fetchTeamData(url));
+  }));
+
+  // My own data
+  const myWeeks = typeof WEEKS!=='undefined' ? WEEKS : [];
+  const sum2 = (sec,field) => myWeeks.reduce((s,w)=>s+(trkData[w.num]?.[sec]?.[field]||[]).length,0);
+  const myVerdes = typeof WEEKS!=='undefined' ? WEEKS.reduce((s,w)=>{
+    const t=trkData[w.num]; if(!t) return s;
+    return s+(t.prosp?.Reuniones||[]).length+(t.cart?.PL||[]).length+(t.cart?.BP||[]).length+(t.cart?.Ofertas||[]).length+(t.cart?.Cierres||[]).length+(t.comp?.PB||[]).length+(t.comp?.Ofertas||[]).length+(t.comp?.Cierres||[]).length;
+  },0) : 0;
+  const myNSem = Math.max(myWeeks.filter(w=>calcRV(w.num)>0).length,1);
+  const myFac = typeof reservas!=='undefined'?reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0):0;
+  teamData['Dante (yo)'] = {
+    verdes:myVerdes, nSem:myNSem, verdesProm:(myVerdes/myNSem).toFixed(1),
+    pl:sum2('cart','PL'), pb:sum2('comp','PB'), capt:sum2('cart','Capt'), facturacion:myFac
+  };
+
+  const fmtU = n=>'$'+Number(n||0).toLocaleString('es-AR');
+  const members = ['Dante (yo)','Yoyi','Hernán'];
+  const colors = {'Dante (yo)':'#185FA5','Yoyi':'#534AB7','Hernán':'#085041'};
+
+  let h = `<div style="padding:.5rem 0 1.25rem">
+    <div style="font-size:18px;font-weight:500">Team consolidado</div>
+    <div style="font-size:13px;color:#888;margin-top:2px">Métricas acumuladas 2026</div>
+  </div>`;
+
+  // Table
+  h += `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="border-bottom:2px solid #e0dfd8">
+      <th style="text-align:left;padding:10px 12px;font-weight:500;color:#888">Vendedor</th>
+      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">🟢 Verdes/sem</th>
+      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">Total verdes</th>
+      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">PreListings</th>
+      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">PreBuyings</th>
+      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">Captaciones</th>
+      <th style="text-align:center;padding:10px 8px;font-weight:500;color:#888">Facturación</th>
+    </tr></thead><tbody>`;
+
+  members.forEach(name=>{
+    const d = teamData[name];
+    const color = colors[name]||'#1a1a1a';
+    if(!d){
+      h += `<tr style="border-bottom:1px solid #f0efe9">
+        <td style="padding:12px;font-weight:500;color:${color}">${name}</td>
+        <td colspan="6" style="text-align:center;color:#aaa;font-size:12px">Sin datos disponibles</td>
+      </tr>`;
+    } else {
+      h += `<tr style="border-bottom:1px solid #f0efe9">
+        <td style="padding:12px;font-weight:500;color:${color}">${name}</td>
+        <td style="text-align:center;padding:12px 8px;font-weight:500">${d.verdesProm}</td>
+        <td style="text-align:center;padding:12px 8px">${d.verdes}</td>
+        <td style="text-align:center;padding:12px 8px">${d.pl}</td>
+        <td style="text-align:center;padding:12px 8px">${d.pb}</td>
+        <td style="text-align:center;padding:12px 8px">${d.capt}</td>
+        <td style="text-align:center;padding:12px 8px;font-weight:500;color:#3B6D11">${fmtU(d.facturacion)}</td>
+      </tr>`;
+    }
+  });
+
+  h += `</tbody></table></div>
+  <div style="font-size:11px;color:#aaa;margin-top:8px;text-align:right">Actualizado al abrir esta solapa</div>`;
+
+  el.innerHTML = h;
+}
+
+function renderTeam_legacy(){
   const el = document.getElementById('tab-team');
   if(!el) return;
 
