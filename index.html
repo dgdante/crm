@@ -566,8 +566,19 @@ function coldStatus(days, tier){
   return 'green';
 }
 function coldLabel(days){if(days===null)return'Sin toques';if(days===0)return'Hoy';if(days===1)return'Ayer';return days+'d atrás';}
-function daysSince(dateStr){if(!dateStr)return null;return Math.floor((new Date()-new Date(dateStr))/86400000);}
-function getLastTouch(id){const t=touches[id];return t&&t.length?t[t.length-1]:null;}
+function daysSince(dateStr){
+  if(!dateStr) return null;
+  const parts=dateStr.split('-').map(Number);
+  const d=new Date(parts[0],parts[1]-1,parts[2]); // local time, no UTC offset
+  const today=new Date(); today.setHours(0,0,0,0);
+  return Math.floor((today-d)/86400000);
+}
+function getLastTouch(id){
+  const t=touches[id];
+  if(!t||!t.length) return null;
+  // Return most recent touch by date, not just last in array
+  return t.reduce((latest,cur)=>(!latest||cur.date>latest.date)?cur:latest, null);
+}
 
 function showTab(id){
   ['db','trackeo','cartera','compradores','dante','team','balance'].forEach(t=>{
@@ -1986,7 +1997,9 @@ function syncTouchesManual(){
     const c = contacts.find(x=>x.name===r.cliente);
     if(c && touches[c.id]) added++;
   });
-  alert('✓ Toques sincronizados correctamente. Abrí Data Base para verlos.');
+  updateStats();
+  applyFilters();
+  alert('✓ Toques sincronizados. La cuenta regresiva de días se actualizó.');
 }
 
 function syncTouchesFromReservas(){
