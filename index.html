@@ -831,6 +831,20 @@ function checkBirthdays(){
   }).join('');
 }
 
+function mostrarContactosDelDia(){
+  const elegibles = contacts.filter(c=>{ const t=tiers[c.id]; return t==='A+'||t==='A'; });
+  if(elegibles.length === 0){ document.getElementById('cta-contactar').style.display='none'; return; }
+  // Pick 3 random (or less if not enough)
+  const shuffled = elegibles.slice().sort(()=>Math.random()-.5);
+  const chosen = shuffled.slice(0, Math.min(3, shuffled.length));
+  const namesEl = document.getElementById('cta-names');
+  namesEl.innerHTML = chosen.map(c=>`
+    <div style="background:rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:500">
+      ${c.name} <span style="opacity:.7;font-size:11px">${tiers[c.id]||''}</span>
+    </div>`).join('');
+  document.getElementById('cta-contactar').style.display='block';
+}
+
 function applyFilters(){
   const q=document.getElementById('search').value.toLowerCase();
   const tier=document.getElementById('filter-tier').value;
@@ -1396,7 +1410,7 @@ function saveTouch(){
     potencialesPB.push({contactName:cName,contactId:activeId,fecha:date,nota:touchObj.note||''});
   }
 
-  closeModal();updateStats();applyFilters();checkBirthdays();
+  closeModal();updateStats();applyFilters();checkBirthdays();mostrarContactosDelDia();
 }
 
 function saveOpp(){
@@ -1650,6 +1664,7 @@ function renderCartera(){
         </select></td>
         <td style="font-size:12px;color:#888">${pl.fecha?pl.fecha.slice(5).replace('-','/'):'—'}${di!==null?' ('+di+'d)':''}</td>
         <td style="font-size:12px;color:#888">${pl.nota||'—'}</td>
+        <td><button onclick="eliminarPL(${i})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button></td>
       </tr>`;
     });
   }
@@ -1884,25 +1899,46 @@ function cambiarEstadoProp(idx, val){
 }
 
 function cambiarEstadoPL(i, val){
-  carteraPLs[i].estado=val;
   if(val==='Captada'){
     const pl=carteraPLs[i];
     if(confirm('¿Agregar "'+pl.contactName+'" a la Cartera activa?')){
       carteraProps.push({direccion:pl.direccion,tipo:pl.tipo,duenio:pl.contactName,precio:'',tasacion:'',esEleva:false,fechaPublicacion:new Date().toISOString().split('T')[0],ultimaVisita:'',ultimaBP:'',estado:'activa',estadoCartera:'Captada'});
+      if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+        const now=new Date();
+        let week=WEEKS.find(w=>now>=w.start&&now<=w.end)||WEEKS[WEEKS.length-1];
+        if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+        if(!trkData[week.num].cart.Capt) trkData[week.num].cart.Capt=[];
+        trkData[week.num].cart.Capt.push({n:pl.contactName,note:pl.direccion||pl.trackingNum||'',auto:false});
+      }
     }
-    // Sync → Trackeo Semanal Captaciones
-    if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
-      const now=new Date();
-      let week=WEEKS.find(w=>now>=w.start&&now<=w.end)||WEEKS[WEEKS.length-1];
-      if(!trkData[week.num]) trkData[week.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-      if(!trkData[week.num].cart.Capt) trkData[week.num].cart.Capt=[];
-      trkData[week.num].cart.Capt.push({n:pl.contactName,note:pl.direccion||pl.trackingNum||'',auto:false});
-    }
-    // Remove from PreListings registro — ya está en Cartera
-    carteraPLs.splice(i, 1);
+    carteraPLs = carteraPLs.filter((_,idx)=>idx!==i);
+  } else {
+    carteraPLs[i].estado=val;
   }
   renderCartera();
 }
+
+function eliminarPL(i){
+  if(!confirm('¿Eliminar este PreListing? Se borrará también del Trackeo Semanal.')) return;
+  const pl = carteraPLs[i];
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+    WEEKS.forEach(w=>{ if(trkData[w.num]?.cart?.PL) trkData[w.num].cart.PL=trkData[w.num].cart.PL.filter(e=>e.n!==pl.contactName); });
+  }
+  opps = opps.filter(o=>!(o.type==='PL'&&o.contactName===pl.contactName));
+  carteraPLs = carteraPLs.filter((_,j)=>j!==i);
+  renderCartera();
+}
+
+function eliminarCaptacion(i){
+  if(!confirm('¿Eliminar esta captación? Se borrará del Trackeo Semanal.')) return;
+  const p = carteraProps[i];
+  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
+    WEEKS.forEach(w=>{ if(trkData[w.num]?.cart?.Capt) trkData[w.num].cart.Capt=trkData[w.num].cart.Capt.filter(e=>e.n!==p.duenio); });
+  }
+  carteraProps.splice(i,1);
+  renderCartera();
+}
+
 
 function eliminarPB(i){
   if(!confirm('¿Eliminar este PreBuying?')) return;
