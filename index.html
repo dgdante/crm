@@ -299,8 +299,8 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
       <div class="stat-card" style="border-left:3px solid #3C3489"><div class="stat-label">A+ activos</div><div class="stat-val" id="st-aplus" style="color:#3C3489">—</div><div class="stat-sub" id="st-aplus-sub">corazón del negocio</div></div>
       <div class="stat-card" style="border-left:3px solid #0C447C"><div class="stat-label">A activos</div><div class="stat-val" id="st-a" style="color:#0C447C">—</div><div class="stat-sub" id="st-a-sub">aspirantes a A+</div></div>
       <div class="stat-card" style="border-left:3px solid #3B6D11"><div class="stat-label">% de A+</div><div class="stat-val" id="st-pct-aplus" style="color:#3B6D11">—</div><div class="stat-sub">sobre A+ + A</div></div>
-      <div class="stat-card"><div class="stat-label">Reuniones semana</div><div class="stat-val" id="st-meetings">0</div><div class="progress-bar"><div class="progress-fill" id="prog-bar" style="width:0%"></div></div><div class="stat-sub" id="prog-label">0% de meta</div></div>
-      <div class="stat-card"><div class="stat-label">Sin toque urgente</div><div class="stat-val" id="st-red" style="color:#A32D2D">—</div><div class="stat-sub">A+ >20d · A >60d</div></div>
+      <div class="stat-sub" id="prog-label">0% de meta</div></div>
+      
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -942,7 +942,6 @@ function renderTable(){
       <td style="white-space:nowrap">
         <button onclick="openModal('${c.id}')" class="btn-sec" style="font-size:11px;padding:4px 9px;margin-right:4px">+ Toque</button>
         <button onclick="abrirHistorialToques('${c.id}')" class="btn-sec" style="font-size:11px;padding:4px 9px;margin-right:4px" title="Ver y borrar toques">📋</button>
-        <button onclick="openOppModal('${c.id}')" class="btn-opp" style="font-size:11px;padding:4px 9px">+ Oport.</button>
       </td>
     </tr>`;
   }).join('');
@@ -1637,6 +1636,7 @@ function renderCartera(){
           <button onclick="abrirModalVisita(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px">+Visita</button>
           <button onclick="abrirModalConsulta(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:3px">+Consulta</button>
           <button onclick="abrirModalBajaPrecio(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px">BP</button>
+          <button onclick="eliminarCaptacion(${idx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer;margin-left:3px" title="Eliminar captación">✕</button>
         </td>
       </tr>`;
     });
