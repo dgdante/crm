@@ -2172,7 +2172,7 @@ function renderDante(){
     <div><div style="font-size:18px;font-weight:500">Dante Reservas</div>
     <div style="font-size:13px;color:#888;margin-top:2px">Reservas, facturación y seguimiento de operaciones</div></div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="abrirModalReserva(null)">+ Nueva reserva</button>
+
       <button class="btn-sec" style="font-size:12px;padding:7px 12px" onclick="syncTouchesManual()" title="Sincroniza los toques de oferta y cierre con la Data Base">🔄 Sincronizar toques</button>
     </div>
   </div>`;
@@ -3943,10 +3943,17 @@ const TEAM_URLS = {
 
 async function fetchTeamData(url){
   try {
-    const r = await fetch(url);
-    const j = await r.json();
-    return j.ok ? JSON.parse(j.data) : null;
-  } catch(e){ return null; }
+    // Google Apps Script requires following redirects
+    const r = await fetch(url, {redirect: 'follow'});
+    const text = await r.text();
+    const j = JSON.parse(text);
+    if(!j.ok || !j.data) return null;
+    const d = typeof j.data === 'string' ? JSON.parse(j.data) : j.data;
+    return d;
+  } catch(e){
+    console.warn('fetchTeamData error:', e);
+    return null;
+  }
 }
 
 function calcMetricsFromData(d){
