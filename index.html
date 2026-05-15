@@ -797,12 +797,12 @@ function updateStats(){
   document.getElementById('st-a').textContent=total?aCount:'—';
   document.getElementById('st-a-sub').textContent=aCount?'contactar cada 60 días':'aspirantes a A+';
   document.getElementById('st-pct-aplus').textContent=total_aa?pctAplus+'%':'—';
-  document.getElementById('st-red').textContent=total?r:'—';
+  if(document.getElementById('st-red')) document.getElementById('st-red').textContent=total?r:'—';
   const meetings=thisWeekMeetings();
-  document.getElementById('st-meetings').textContent=meetings;
+  if(document.getElementById('st-meetings')) document.getElementById('st-meetings').textContent=meetings;
   const pct=Math.min(100,Math.round(meetings/10*100));
   document.getElementById('prog-bar').style.width=pct+'%';
-  document.getElementById('prog-label').textContent=pct+'% de meta semanal'+(meetings>=10?' ✓':'');
+  if(document.getElementById('prog-label')) document.getElementById('prog-label').textContent=pct+'% de meta semanal'+(meetings>=10?' ✓':'');
   // Safe update of optional elements
   const oppEl=document.getElementById('st-opps');
   if(oppEl) oppEl.textContent=opps.length;
@@ -962,7 +962,7 @@ function previewTracking(type){
 function toggleOppFields(){
   const type=document.getElementById('m-opp-type').value;
   document.getElementById('opp-fields').style.display=type?'block':'none';
-  if(type)document.getElementById('preview-tracking').textContent=previewTracking(type);
+  if(type)const _pt=document.getElementById('preview-tracking'); if(_pt) _pt.textContent=previewTracking(type);
 }
 function updateOppPreview(){
   const type=document.getElementById('o-type').value;
