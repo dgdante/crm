@@ -962,7 +962,7 @@ function previewTracking(type){
 function toggleOppFields(){
   const type=document.getElementById('m-opp-type').value;
   document.getElementById('opp-fields').style.display=type?'block':'none';
-  if(type)const _pt=document.getElementById('preview-tracking'); if(_pt) _pt.textContent=previewTracking(type);
+  if(type){ const _pt=document.getElementById('preview-tracking'); if(_pt) _pt.textContent=previewTracking(type); }
 }
 function updateOppPreview(){
   const type=document.getElementById('o-type').value;
