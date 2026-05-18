@@ -780,7 +780,7 @@ function thisWeekMeetings(){
 
 function updateStats(){
   const total=contacts.length;
-  document.getElementById('st-total').textContent=total||'—';
+  if(document.getElementById('st-total')) document.getElementById('st-total').textContent=total||'—';
   let r=0;
   const apluses=contacts.filter(c=>tiers[c.id]==='A+');
   const as_=contacts.filter(c=>tiers[c.id]==='A');
@@ -789,10 +789,10 @@ function updateStats(){
   const pctAplus=total_aa>0?Math.round(aplusCount/total_aa*100):0;
   // Contacts overdue by tier
   contacts.forEach(c=>{const s=coldStatus(daysSince(getLastTouch(c.id)?.date),tiers[c.id]||'B');if(s==='red')r++;});
-  document.getElementById('st-aplus').textContent=total?aplusCount:'—';
-  document.getElementById('st-aplus-sub').textContent=aplusCount?'contactar cada 20 días':'corazón del negocio';
-  document.getElementById('st-a').textContent=total?aCount:'—';
-  document.getElementById('st-a-sub').textContent=aCount?'contactar cada 60 días':'aspirantes a A+';
+  if(document.getElementById('st-aplus')) document.getElementById('st-aplus').textContent=total?aplusCount:'—';
+  if(document.getElementById('st-aplus-sub')) document.getElementById('st-aplus-sub').textContent=aplusCount?'contactar cada 20 días':'corazón del negocio';
+  if(document.getElementById('st-a')) document.getElementById('st-a').textContent=total?aCount:'—';
+  if(document.getElementById('st-a-sub')) document.getElementById('st-a-sub').textContent=aCount?'contactar cada 60 días':'aspirantes a A+';
   if(document.getElementById('st-pct-aplus')) document.getElementById('st-pct-aplus').textContent=total_aa?pctAplus+'%':'—';
   if(document.getElementById('st-red')) document.getElementById('st-red').textContent=total?r:'—';
   const meetings=thisWeekMeetings();
@@ -829,17 +829,15 @@ function checkBirthdays(){
 }
 
 function mostrarContactosDelDia(){
+  const ctaEl = document.getElementById('cta-contactar');
+  const namesEl = document.getElementById('cta-names');
+  if(!ctaEl || !namesEl) return;
   const elegibles = contacts.filter(c=>{ const t=tiers[c.id]; return t==='A+'||t==='A'; });
-  if(elegibles.length === 0){ document.getElementById('cta-contactar').style.display='none'; return; }
-  // Pick 3 random (or less if not enough)
+  if(elegibles.length === 0){ ctaEl.style.display='none'; return; }
   const shuffled = elegibles.slice().sort(()=>Math.random()-.5);
   const chosen = shuffled.slice(0, Math.min(3, shuffled.length));
-  const namesEl = document.getElementById('cta-names');
-  namesEl.innerHTML = chosen.map(c=>`
-    <div style="background:rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:500">
-      ${c.name} <span style="opacity:.7;font-size:11px">${tiers[c.id]||''}</span>
-    </div>`).join('');
-  document.getElementById('cta-contactar').style.display='block';
+  namesEl.innerHTML = chosen.map(c=>'<div style="background:rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:500">'+c.name+' <span style="opacity:.7;font-size:11px">'+(tiers[c.id]||'')+'</span></div>').join('');
+  ctaEl.style.display='block';
 }
 
 function applyFilters(){
