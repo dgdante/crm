@@ -199,45 +199,43 @@ async function loadFromSheets(retryCount=0) {
     if(!json.ok || !json.data) {
       showSyncStatus('Sin datos previos', '#888'); return;
     }
-    // Support both old (single cell) and new (multi-cell) format
-    const applyChunk = (d) => {
-      if(d.touches)     touches=d.touches;
-      if(d.tiers)       tiers=d.tiers;
-      if(d.opps)        opps=d.opps;
-      if(d.oppCounters) oppCounters=d.oppCounters;
-      if(d.carteraProps) carteraProps=d.carteraProps;
-      if(d.carteraPLs)   carteraPLs=d.carteraPLs;
-      if(d.potencialesPL) potencialesPL=d.potencialesPL;
-      if(d.potencialesPB) potencialesPB=d.potencialesPB;
+    const applyData = (d) => {
+      if(!d) return;
+      if(d.touches)          touches=d.touches;
+      if(d.tiers)            tiers=d.tiers;
+      if(d.opps)             opps=d.opps;
+      if(d.oppCounters)      oppCounters=d.oppCounters;
+      if(d.carteraProps)     carteraProps=d.carteraProps;
+      if(d.carteraPLs)       carteraPLs=d.carteraPLs;
+      if(d.potencialesPL)    potencialesPL=d.potencialesPL;
+      if(d.potencialesPB)    potencialesPB=d.potencialesPB;
       if(d.propiedadesVendidas) propiedadesVendidas=d.propiedadesVendidas;
       if(d.compradoresProsp) compradoresProsp=d.compradoresProsp;
-      if(d.compradorePBs) compradorePBs=d.compradorePBs;
+      if(d.compradorePBs)    compradorePBs=d.compradorePBs;
       if(d.compradoresVendidos) compradoresVendidos=d.compradoresVendidos;
-      if(d.reservas)    reservas=d.reservas;
-      if(d.objetivosMes) objetivosMes=d.objetivosMes;
-      if(d.gastos)      gastos=d.gastos;
+      if(d.reservas)         reservas=d.reservas;
+      if(d.objetivosMes)     objetivosMes=d.objetivosMes;
+      if(d.gastos)           gastos=d.gastos;
+      if(d.trkData){
+        trkData={};
+        Object.keys(d.trkData).forEach(k=>{
+          const n=parseInt(k); trkData[isNaN(n)?k:n]=d.trkData[k];
+        });
+      }
     };
-    if(json.chunks){
-      // New multi-cell format
-      json.chunks.forEach(c=>{ try{ applyChunk(JSON.parse(c)); }catch(e){} });
-    } else {
-      // Old single-cell format
-      applyChunk(JSON.parse(json.data));
+
+    // Try multi-cell format first (B2+B3+B4), fallback to single cell (B2)
+    if(json.chunks && json.chunks.length > 0){
+      json.chunks.forEach(c=>{ try{ applyData(JSON.parse(c)); }catch(e){ console.warn('chunk error',e); } });
+    } else if(json.data){
+      try{ applyData(JSON.parse(json.data)); }catch(e){ console.warn('data error',e); }
     }
-    // Normalize trkData numeric keys (JSON converts them to strings)
-    if(trkData && Object.keys(trkData).length > 0){
-      const normalized = {};
-      Object.keys(trkData).forEach(k=>{
-        const num = parseInt(k);
-        normalized[isNaN(num)?k:num] = trkData[k];
-      });
-      trkData = normalized;
-    }
-    // Ensure all 52 weeks exist in trkData
+
+    // Ensure all 52 weeks exist
     if(typeof WEEKS!=='undefined') WEEKS.forEach(w=>{
       if(!trkData[w.num]) trkData[w.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-      if(!trkData[w.num].cart) trkData[w.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
-      if(!trkData[w.num].comp) trkData[w.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
+      if(!trkData[w.num].cart)  trkData[w.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
+      if(!trkData[w.num].comp)  trkData[w.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
       if(!trkData[w.num].prosp) trkData[w.num].prosp={Reuniones:[]};
     });
     if(d.trkData){
