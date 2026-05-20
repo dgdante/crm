@@ -126,11 +126,6 @@ window.onerror = function(msg, src, line, col, err){
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyKGy6WO6HzQzx570PP5yJ90rZVkNloROt7OB_ZGIewO4p_lirMGPEq7bo9yPI7xSRe/exec';
 
 async function saveToSheets() {
-  // Never save if contacts is empty - would overwrite good data
-  if(contacts.length === 0) {
-    showSyncStatus('Importá el CSV primero', '#854F0B');
-    return;
-  }
   showSyncStatus('Guardando...', '#185FA5');
   // Solo guardamos tiers no-B para reducir tamaño
   const tiersToSave = {};
