@@ -133,36 +133,38 @@ async function saveToSheets() {
   // Solo guardamos touches que tienen datos
   const touchesToSave = {};
   Object.keys(touches).forEach(k=>{ if(touches[k]&&touches[k].length>0) touchesToSave[k]=touches[k]; });
-  const data = {
-    touches: touchesToSave, tiers: tiersToSave, opps, oppCounters,
-    carteraProps, carteraPLs, potencialesPL, propiedadesVendidas, potencialesPB,
-    compradoresProsp, compradorePBs, compradoresVendidos,
-    reservas, objetivosMes, gastos, trkData
-  };
-  try {
-    const payload = JSON.stringify(data);
-    // Try normal fetch first (works when CORS headers are set)
-    let saved = false;
+  // Split data into chunks to avoid Google Sheets 50k char cell limit
+  const chunk1 = { touches: touchesToSave, tiers: tiersToSave, opps, oppCounters };
+  const chunk2 = { carteraProps, carteraPLs, potencialesPL, propiedadesVendidas,
+    potencialesPB, compradoresProsp, compradorePBs, compradoresVendidos };
+  const chunk3 = { reservas, objetivosMes, gastos, trkData };
+
+  const sendChunk = async (chunk, cell) => {
+    const payload = JSON.stringify({cell, data: JSON.stringify(chunk)});
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: payload,
-        headers: { 'Content-Type': 'text/plain' },
-        redirect: 'follow'
+        method: 'POST', body: payload,
+        headers: {'Content-Type':'text/plain'}, redirect:'follow'
       });
-      const txt = await res.text();
-      const j = JSON.parse(txt);
-      if(j.ok) saved = true;
-    } catch(e1){}
-    // Fallback to no-cors if normal fetch failed
-    if(!saved){
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: payload,
-        headers: { 'Content-Type': 'text/plain' },
-        mode: 'no-cors'
-      });
+      const j = JSON.parse(await res.text());
+      return j.ok;
+    } catch(e1){
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method:'POST', body:payload,
+          headers:{'Content-Type':'text/plain'}, mode:'no-cors'
+        });
+        return true;
+      } catch(e2){ return false; }
     }
+  };
+
+  try {
+    await Promise.all([
+      sendChunk(chunk1, 'B2'),
+      sendChunk(chunk2, 'B3'),
+      sendChunk(chunk3, 'B4')
+    ]);
     showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}), '#3B6D11');
   } catch(e) {
     showSyncStatus('Error al guardar: ' + e.message, '#A32D2D');
@@ -197,23 +199,31 @@ async function loadFromSheets(retryCount=0) {
     if(!json.ok || !json.data) {
       showSyncStatus('Sin datos previos', '#888'); return;
     }
-    const d = JSON.parse(json.data);
-    // contacts come from CSV, not from Sheets
-    if(d.touches)     touches=d.touches;
-    if(d.tiers)       tiers=d.tiers;
-    if(d.opps)        opps=d.opps;
-    if(d.oppCounters) oppCounters=d.oppCounters;
-    if(d.carteraProps) carteraProps=d.carteraProps;
-    if(d.carteraPLs)    carteraPLs=d.carteraPLs;
-    if(d.potencialesPL) potencialesPL=d.potencialesPL;
-    if(d.potencialesPB) potencialesPB=d.potencialesPB;
-    if(d.propiedadesVendidas) propiedadesVendidas=d.propiedadesVendidas;
-    if(d.compradoresProsp) compradoresProsp=d.compradoresProsp;
-    if(d.compradorePBs) compradorePBs=d.compradorePBs;
-    if(d.compradoresVendidos) compradoresVendidos=d.compradoresVendidos;
-    if(d.reservas)    reservas=d.reservas;
-    if(d.objetivosMes) objetivosMes=d.objetivosMes;
-    if(d.gastos)      gastos=d.gastos;
+    // Support both old (single cell) and new (multi-cell) format
+    const applyChunk = (d) => {
+      if(d.touches)     touches=d.touches;
+      if(d.tiers)       tiers=d.tiers;
+      if(d.opps)        opps=d.opps;
+      if(d.oppCounters) oppCounters=d.oppCounters;
+      if(d.carteraProps) carteraProps=d.carteraProps;
+      if(d.carteraPLs)   carteraPLs=d.carteraPLs;
+      if(d.potencialesPL) potencialesPL=d.potencialesPL;
+      if(d.potencialesPB) potencialesPB=d.potencialesPB;
+      if(d.propiedadesVendidas) propiedadesVendidas=d.propiedadesVendidas;
+      if(d.compradoresProsp) compradoresProsp=d.compradoresProsp;
+      if(d.compradorePBs) compradorePBs=d.compradorePBs;
+      if(d.compradoresVendidos) compradoresVendidos=d.compradoresVendidos;
+      if(d.reservas)    reservas=d.reservas;
+      if(d.objetivosMes) objetivosMes=d.objetivosMes;
+      if(d.gastos)      gastos=d.gastos;
+    };
+    if(json.chunks){
+      // New multi-cell format
+      json.chunks.forEach(c=>{ try{ applyChunk(JSON.parse(c)); }catch(e){} });
+    } else {
+      // Old single-cell format
+      applyChunk(JSON.parse(json.data));
+    }
     if(d.trkData){
       // JSON converts numeric keys to strings - normalize back to numbers
       trkData={};
