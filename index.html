@@ -140,30 +140,16 @@ async function saveToSheets() {
     reservas, objetivosMes, gastos, trkData
   };
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
+    // Use no-cors to avoid POST→GET redirect issue with Apps Script
+    await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'text/plain' },
-      redirect: 'follow'
+      mode: 'no-cors'
     });
-    const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); } catch(e) { json = {ok: true}; }
     showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}), '#3B6D11');
   } catch(e) {
-    // Try no-cors as fallback - fire and forget
-    try {
-      fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'text/plain' },
-        mode: 'no-cors',
-        redirect: 'follow'
-      });
-      showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}), '#3B6D11');
-    } catch(e2) {
-      showSyncStatus('Error: ' + e2.message, '#A32D2D');
-    }
+    showSyncStatus('Error al guardar: ' + e.message, '#A32D2D');
   }
 }
 
