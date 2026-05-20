@@ -238,21 +238,7 @@ async function loadFromSheets(retryCount=0) {
       if(!trkData[w.num].comp)  trkData[w.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
       if(!trkData[w.num].prosp) trkData[w.num].prosp={Reuniones:[]};
     });
-    if(d.trkData){
-      // JSON converts numeric keys to strings - normalize back to numbers
-      trkData={};
-      Object.keys(d.trkData).forEach(k=>{
-        const num=parseInt(k);
-        trkData[isNaN(num)?k:num]=d.trkData[k];
-      });
-      // Ensure all 52 weeks exist
-      if(typeof WEEKS!=='undefined') WEEKS.forEach(w=>{
-        if(!trkData[w.num]) trkData[w.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
-        if(!trkData[w.num].cart) trkData[w.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
-        if(!trkData[w.num].comp) trkData[w.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
-        if(!trkData[w.num].prosp) trkData[w.num].prosp={Reuniones:[]};
-      });
-    }
+
     showSyncStatus('✓ Datos cargados', '#3B6D11');
     try{updateStats();}catch(e){}
     try{applyFilters();}catch(e){}
