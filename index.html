@@ -196,7 +196,7 @@ async function loadFromSheets(retryCount=0) {
       if(retryCount < 3){ setTimeout(()=>loadFromSheets(retryCount+1), 2000); return; }
       showSyncStatus('Error parseando datos', '#A32D2D'); return;
     }
-    if(!json.ok || !json.data) {
+    if(!json.ok || (!json.data && !json.chunks)) {
       showSyncStatus('Sin datos previos', '#888'); return;
     }
     const applyData = (d) => {
