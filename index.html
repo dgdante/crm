@@ -299,7 +299,6 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
       <div class="stat-card" style="border-left:3px solid #3C3489"><div class="stat-label">A+ activos</div><div class="stat-val" id="st-aplus" style="color:#3C3489">—</div><div class="stat-sub" id="st-aplus-sub">corazón del negocio</div></div>
       <div class="stat-card" style="border-left:3px solid #0C447C"><div class="stat-label">A activos</div><div class="stat-val" id="st-a" style="color:#0C447C">—</div><div class="stat-sub" id="st-a-sub">aspirantes a A+</div></div>
       <div class="stat-card" style="border-left:3px solid #3B6D11"><div class="stat-label">% de A+</div><div class="stat-val" id="st-pct-aplus" style="color:#3B6D11">—</div><div class="stat-sub">sobre A+ + A</div></div>
-      <div class="stat-sub" id="prog-label">0% de meta</div>
       
     </div>
 
@@ -2967,6 +2966,11 @@ function iniciarTrackeo(){
     <div class="stat-card"><div class="stat-label">PB Comprador</div><div class="stat-val" style="color:#085041">${totPB}</div></div>
     <div class="stat-card"><div class="stat-label">Cierres totales</div><div class="stat-val" style="color:#185FA5">${totCC}</div></div>
     <div class="stat-card"><div class="stat-label">Verdes año</div><div class="stat-val" style="color:#27500A">${rvTotal}</div></div>
+    <div class="stat-card" style="border-left:3px solid #27500A">
+      <div class="stat-label">Prom. verdes/sem</div>
+      <div class="stat-val" style="color:#27500A">${cw.num>0?(rvTotal/cw.num).toFixed(1):'—'}</div>
+      <div class="stat-sub">promedio acumulado 2026</div>
+    </div>
   </div>`;
 
   // ── Ratios de conversión ──
@@ -3630,7 +3634,7 @@ function renderCompradores(){
   const activos = compradoresProsp.filter(p=>p.estado==='activo');
   const avgPresupuesto = activos.length&&activos.some(p=>p.presupuesto)?
     Math.round(activos.filter(p=>p.presupuesto).reduce((s,p)=>s+Number(p.presupuesto),0)/activos.filter(p=>p.presupuesto).length):0;
-  const pendPBs = compradorePBs.filter(p=>p.estado==='Pendiente'||p.estado==='En búsqueda').length;
+  const pendPBs = compradorePBs.filter(p=>p.estado===PB_ESTADOS[1]).length;
   const cerradosPBs = compradorePBs.filter(p=>p.estado==='Operación cerrada').length;
 
   let h = '';
@@ -3647,15 +3651,16 @@ function renderCompradores(){
   h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">
     <div class="stat-card"><div class="stat-label">Compradores activos</div><div class="stat-val" style="color:#085041">${activos.length}</div></div>
     <div class="stat-card"><div class="stat-label">Presupuesto prom.</div><div class="stat-val" style="font-size:16px">${avgPresupuesto?'$'+Number(avgPresupuesto).toLocaleString('es-AR'):'—'}</div></div>
-    <div class="stat-card"><div class="stat-label">PB activos</div><div class="stat-val" style="color:#534AB7">${pendPBs}</div><div class="stat-sub">en búsqueda</div></div>
-    <div class="stat-card"><div class="stat-label">Operaciones cerradas</div><div class="stat-val" style="color:#3B6D11">${cerradosPBs}</div></div>
-    <div class="stat-card"><div class="stat-label">Vendidos (hist.)</div><div class="stat-val" style="color:#3B6D11">${compradoresVendidos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Ingreso potencial (3%)</div><div class="stat-val" style="font-size:16px;color:#3B6D11">${ingresoPotencial?'$'+ingresoPotencial.toLocaleString('es-AR'):'—'}</div></div>
+    <div class="stat-card"><div class="stat-label">En búsqueda</div><div class="stat-val" style="color:#534AB7">${pendPBs}</div></div>
+    <div class="stat-card"><div class="stat-label">Compradores cerrados</div><div class="stat-val" style="color:#3B6D11">${cerradosPBs+(compradoresVendidos?compradoresVendidos.length:0)}</div></div>
+    
   </div>`;
 
   // Tabla compradores activos
   h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
     <div style="font-size:15px;font-weight:500">Compradores activos <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${activos.length} compradores</span></div>
-    <button class="btn-primary" style="font-size:12px;padding:6px 14px;background:#085041" onclick="abrirModalComprador(null)">+ Agregar comprador</button>
+    
   </div>
   <div class="table-wrap" style="margin-bottom:1.5rem"><div style="overflow-x:auto">
   <table style="table-layout:auto;min-width:900px">
