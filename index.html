@@ -224,6 +224,22 @@ async function loadFromSheets(retryCount=0) {
       // Old single-cell format
       applyChunk(JSON.parse(json.data));
     }
+    // Normalize trkData numeric keys (JSON converts them to strings)
+    if(trkData && Object.keys(trkData).length > 0){
+      const normalized = {};
+      Object.keys(trkData).forEach(k=>{
+        const num = parseInt(k);
+        normalized[isNaN(num)?k:num] = trkData[k];
+      });
+      trkData = normalized;
+    }
+    // Ensure all 52 weeks exist in trkData
+    if(typeof WEEKS!=='undefined') WEEKS.forEach(w=>{
+      if(!trkData[w.num]) trkData[w.num]={prosp:{Reuniones:[]},cart:{PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]},comp:{PB:[],Ofertas:[],Cierres:[],Referidos:[]}};
+      if(!trkData[w.num].cart) trkData[w.num].cart={PL:[],Capt:[],Ofertas:[],Cierres:[],BP:[],Referidos:[]};
+      if(!trkData[w.num].comp) trkData[w.num].comp={PB:[],Ofertas:[],Cierres:[],Referidos:[]};
+      if(!trkData[w.num].prosp) trkData[w.num].prosp={Reuniones:[]};
+    });
     if(d.trkData){
       // JSON converts numeric keys to strings - normalize back to numbers
       trkData={};
@@ -3661,6 +3677,8 @@ function renderCompradores(){
   const activos = compradoresProsp.filter(p=>p.estado==='activo');
   const avgPresupuesto = activos.length&&activos.some(p=>p.presupuesto)?
     Math.round(activos.filter(p=>p.presupuesto).reduce((s,p)=>s+Number(p.presupuesto),0)/activos.filter(p=>p.presupuesto).length):0;
+  const enBusqueda = compradorePBs.filter(p=>p.estado===PB_ESTADOS[1]);
+  const ingresoPotencial = Math.round(enBusqueda.reduce((s,p)=>s+(Number(p.presupuesto)||0)*0.03, 0));
   const pendPBs = compradorePBs.filter(p=>p.estado===PB_ESTADOS[1]).length;
   const cerradosPBs = compradorePBs.filter(p=>p.estado==='Operación cerrada').length;
 
