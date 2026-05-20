@@ -172,14 +172,34 @@ async function saveToSheets() {
   }
 }
 
-async function loadFromSheets() {
-  showSyncStatus('Cargando...', '#185FA5');
+async function loadFromSheets(retryCount=0) {
+  showSyncStatus('Cargando datos...', '#185FA5');
   try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=load', { redirect: 'follow' });
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 15000); // 15s timeout
+    let res;
+    try {
+      res = await fetch(APPS_SCRIPT_URL + '?action=load', { redirect:'follow', signal:controller.signal });
+    } catch(fetchErr) {
+      clearTimeout(timeout);
+      if(retryCount < 3){
+        showSyncStatus(`Reintentando... (${retryCount+1}/3)`, '#854F0B');
+        setTimeout(()=>loadFromSheets(retryCount+1), 2000*(retryCount+1));
+      } else {
+        showSyncStatus('Error de conexión. Reintentá manualmente.', '#A32D2D');
+      }
+      return;
+    }
+    clearTimeout(timeout);
     const text = await res.text();
     let json;
-    try { json = JSON.parse(text); } catch(e) { showSyncStatus('Error parseando datos', '#A32D2D'); return; }
-    if(!json.ok || !json.data) { showSyncStatus('Sin datos previos', '#888'); return; }
+    try { json = JSON.parse(text); } catch(e) {
+      if(retryCount < 3){ setTimeout(()=>loadFromSheets(retryCount+1), 2000); return; }
+      showSyncStatus('Error parseando datos', '#A32D2D'); return;
+    }
+    if(!json.ok || !json.data) {
+      showSyncStatus('Sin datos previos', '#888'); return;
+    }
     const d = JSON.parse(json.data);
     // contacts come from CSV, not from Sheets
     if(d.touches)     touches=d.touches;
