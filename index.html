@@ -221,9 +221,11 @@ async function loadFromSheets(retryCount=0) {
     }
     // Parse saved data - supports both old B2 and new multi-cell (B2+B3+B4)
     const loadChunks = json.chunks || (json.data ? [json.data] : []);
-    loadChunks.forEach(raw => {
+    console.log('CRM LOAD: chunks count='+loadChunks.length, 'sizes='+loadChunks.map(c=>c.length));
+    loadChunks.forEach((raw, chunkIdx) => {
       try {
         const d = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        console.log('CRM chunk '+chunkIdx+': keys='+Object.keys(d).join(','));
         if(d.touches)           touches=d.touches;
         if(d.tiers)             tiers=d.tiers;
         if(d.opps)              opps=d.opps;
@@ -240,12 +242,20 @@ async function loadFromSheets(retryCount=0) {
         if(d.objetivosMes)      objetivosMes=d.objetivosMes;
         if(d.gastos)            gastos=d.gastos;
         if(d.trkData){
-          Object.keys(d.trkData).forEach(k=>{
+          const trkKeys = Object.keys(d.trkData);
+          console.log('CRM chunk '+chunkIdx+': trkData weeks='+trkKeys.length);
+          trkKeys.forEach(k=>{
             const n=parseInt(k);
             trkData[isNaN(n)?k:n]=d.trkData[k];
           });
+          // Check if any week has real data
+          const weeksWithData = trkKeys.filter(k=>{
+            const w=d.trkData[k];
+            return (w.prosp?.Reuniones?.length||0)+(w.cart?.PL?.length||0)+(w.cart?.Capt?.length||0)>0;
+          });
+          console.log('CRM chunk '+chunkIdx+': weeks with PL/PB/Reuniones='+weeksWithData.length);
         }
-      } catch(e){ console.warn('load chunk error:', e); }
+      } catch(e){ console.warn('load chunk '+chunkIdx+' error:', e); }
     });
     // Ensure all 52 weeks exist without overwriting loaded data
     if(typeof WEEKS!=='undefined') WEEKS.forEach(w=>{
