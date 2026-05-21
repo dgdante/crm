@@ -124,6 +124,24 @@ window.onerror = function(msg, src, line, col, err){
 //  GOOGLE SHEETS SYNC — via Apps Script
 // ══════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyKGy6WO6HzQzx570PP5yJ90rZVkNloROt7OB_ZGIewO4p_lirMGPEq7bo9yPI7xSRe/exec';
+// ── Shared global data variables ──
+var touches = {};
+var tiers = {};
+var opps = [];
+var oppCounters = {PL:0,PB:0,REF:0};
+var carteraProps = [];
+var carteraPLs = [];
+var potencialesPL = [];
+var potencialesPB = [];
+var propiedadesVendidas = [];
+var compradoresProsp = [];
+var compradorePBs = [];
+var compradoresVendidos = [];
+var reservas = [];
+var objetivosMes = {};
+var gastos = {};
+var trkData = {};
+
 
 async function saveToSheets() {
   showSyncStatus('Guardando...', '#185FA5');
@@ -554,8 +572,8 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
 </div>
 
 <script>
-let contacts=[],touches={},tiers={},opps=[],filtered=[],currentPage=1;
-let oppCounters={PL:0,PB:0,REF:0};
+var contacts=[];filtered=[];var currentPage=1;
+oppCounters={PL:0,PB:0,REF:0};
 const PER=45;let sortKey='tier',sortDir=1,activeId=null,activeContact=null,oppActiveId=null;
 let oppPage=1;const OPP_PER=15;
 
@@ -1547,11 +1565,11 @@ document.getElementById('opp-overlay').addEventListener('click',function(e){if(e
 // ══════════════════════════════════════════════════
 //  CARTERA — propiedades activas + pipeline de PLs
 // ══════════════════════════════════════════════════
-let carteraProps = [];
-let carteraPLs   = [];
-let potencialesPL = [];
-let potencialesPB = [];
-let propiedadesVendidas = [];
+carteraProps = [];
+carteraPLs   = [];
+potencialesPL = [];
+potencialesPB = [];
+propiedadesVendidas = [];
 const PROP_TIPOS = ['Departamento','Casa','PH','Local comercial','Oficina','Terreno'];
 const PL_ESTADOS = ['Pendiente','Captada','Postergada','Perdida'];
 window.carteraFiltroEleva = 'total';
@@ -2003,8 +2021,8 @@ function carteraRegistrarBP(idx){
 // ══════════════════════════════════════════════════
 //  DETALLE DANTE — Reservas y facturación
 // ══════════════════════════════════════════════════
-let reservas = [];
-let objetivosMes = {}; // {YYYY-MM: objetivo}
+reservas = [];
+objetivosMes = {}; // {YYYY-MM: objetivo}
 let danteReservaEditIdx = null;
 
 const RESERVA_ESTADOS = ['En negociación','Aceptada','Cerrada','Caída'];
@@ -2859,7 +2877,7 @@ const META_SEMANAL_RV = 18;
 const META_ANUAL_RV   = META_SEMANAL_RV * 52; // 936
 
 // Storage: trkData[weekNum] = { prosp:{}, cart:{}, comp:{} }
-let trkData = {};
+trkData = {};
 WEEKS.forEach(w => {
   trkData[w.num] = {
     prosp: { 'Reuniones':[] },
@@ -3359,7 +3377,7 @@ function trkSave(){
 // ══════════════════════════════════════════════════
 
 // gastos[YYYY-MM][categoria] = monto
-let gastos = {};
+gastos = {};
 
 // Gastos fijos por defecto (USD/mes)
 const GASTOS_FIJOS = [
@@ -3630,9 +3648,9 @@ function abrirDetalleGastos(ym){
 // ══════════════════════════════════════════════════
 //  COMPRADORES
 // ══════════════════════════════════════════════════
-let compradoresProsp = [];   // compradores activos
-let compradorePBs    = [];   // pipeline de PreBuyings
-let compradoresVendidos = [];
+compradoresProsp = [];   // compradores activos
+compradorePBs    = [];   // pipeline de PreBuyings
+compradoresVendidos = [];
 
 const BUSQUEDA_TIPOS = ['Departamento','Casa','PH','Local comercial','Oficina','Terreno'];
 const PB_ESTADOS = ['Pendiente','En búsqueda','Operación cerrada','Postergado','Perdido'];
