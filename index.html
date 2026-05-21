@@ -1987,6 +1987,21 @@ function eliminarCaptacion(i){
 }
 
 
+function editarPB(i){
+  const pb = compradorePBs[i];
+  if(!pb) return;
+  const busqueda = prompt('¿Qué está buscando?', pb.busqueda||'');
+  if(busqueda === null) return;
+  const presupuesto = prompt('Presupuesto (solo números, en USD):', pb.presupuesto||'');
+  if(presupuesto === null) return;
+  const nota = prompt('Nota adicional:', pb.nota||'');
+  if(nota === null) return;
+  compradorePBs[i].busqueda = busqueda;
+  compradorePBs[i].presupuesto = presupuesto ? Number(presupuesto.replace(/[^0-9]/g,'')) : '';
+  compradorePBs[i].nota = nota;
+  renderCompradores();
+}
+
 function eliminarPB(i){
   if(!confirm('¿Eliminar este PreBuying?')) return;
   compradorePBs.splice(i, 1);
@@ -3688,7 +3703,11 @@ function renderCompradores(){
   const avgPresupuesto = activos.length&&activos.some(p=>p.presupuesto)?
     Math.round(activos.filter(p=>p.presupuesto).reduce((s,p)=>s+Number(p.presupuesto),0)/activos.filter(p=>p.presupuesto).length):0;
   const enBusqueda = compradorePBs.filter(p=>p.estado===PB_ESTADOS[1]);
-  const ingresoPotencial = Math.round(enBusqueda.reduce((s,p)=>s+(Number(p.presupuesto)||0)*0.03, 0));
+  // 3% del presupuesto de PBs "En búsqueda" + activos en compradoresProsp
+  const ingresoPotencial = Math.round(
+    enBusqueda.reduce((s,p)=>s+(Number(p.presupuesto)||0)*0.03, 0) +
+    activos.reduce((s,p)=>s+(Number(p.presupuesto)||0)*0.03, 0)
+  );
   const pendPBs = compradorePBs.filter(p=>p.estado===PB_ESTADOS[1]).length;
   const cerradosPBs = compradorePBs.filter(p=>p.estado==='Operación cerrada').length;
 
@@ -3765,16 +3784,21 @@ function renderCompradores(){
   } else {
     compradorePBs.filter(pb=>!pb._movido).forEach((pb,i)=>{ const realIdx=compradorePBs.indexOf(pb);
       const di = pb.fecha ? Math.floor((new Date()-new Date(pb.fecha))/86400000) : '—';
+      const presupDisplay = pb.presupuesto ? '$'+Number(pb.presupuesto).toLocaleString('es-AR') : '—';
       h += `<tr>
         <td><span class="tracking-num">${pb.trackingNum||'—'}</span></td>
         <td>${pb.contactName||'—'}</td>
         <td style="font-size:12px;color:#888">${pb.busqueda||'—'}</td>
-        <td><span class="tag tag-otro" style="font-size:11px">${pb.tipo||'—'}</span></td>
+        <td style="font-size:12px;font-weight:500;color:#085041">${presupDisplay}</td>
         <td><select onchange="cambiarEstadoPB(${realIdx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
           ${PB_ESTADOS.map(e=>`<option value="${e}" ${pb.estado===e?'selected':''}>${e}</option>`).join('')}
         </select></td>
         <td style="font-size:12px;color:#888">${pb.fecha?pb.fecha.slice(5).replace('-','/'):'—'}${typeof di==='number'?' ('+di+'d)':''}</td>
         <td style="font-size:12px;color:#888">${pb.nota||'—'}</td>
+        <td>
+          <button onclick="editarPB(${realIdx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">Editar</button>
+          <button onclick="eliminarPB(${realIdx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button>
+        </td>
       </tr>`;
     });
   }
