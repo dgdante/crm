@@ -1699,19 +1699,19 @@ function renderCartera(){
   if(!carteraPLs.length){
     h+='<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreListings aún. Se sincronizan automáticamente desde los toques con resultado PL.</td></tr>';
   } else {
-    carteraPLs.forEach((pl,i)=>{
+    carteraPLs.filter(pl=>!pl._captado).forEach((pl,i)=>{ const realPLIdx=carteraPLs.indexOf(pl);
       const di=daysSinceDate(pl.fecha);
       h+=`<tr>
         <td><span class="tracking-num">${pl.trackingNum||'—'}</span></td>
         <td>${pl.contactName||'—'}</td>
         <td style="font-size:12px;color:#888">${pl.direccion||'—'}</td>
         <td><span class="tag tag-otro" style="font-size:11px">${pl.tipo||'—'}</span></td>
-        <td><select onchange="cambiarEstadoPL(${i},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+        <td><select onchange="cambiarEstadoPL(${realPLIdx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
           ${['Pendiente','Captada','Postergada','Perdida'].map(e=>`<option value="${e}" ${pl.estado===e?'selected':''}>${e}</option>`).join('')}
         </select></td>
         <td style="font-size:12px;color:#888">${pl.fecha?pl.fecha.slice(5).replace('-','/'):'—'}${di!==null?' ('+di+'d)':''}</td>
         <td style="font-size:12px;color:#888">${pl.nota||'—'}</td>
-        <td><button onclick="eliminarPL(${i})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button></td>
+        <td><button onclick="eliminarPL(${realPLIdx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button></td>
       </tr>`;
     });
   }
@@ -1957,8 +1957,10 @@ function cambiarEstadoPL(i, val){
         if(!trkData[week.num].cart.Capt) trkData[week.num].cart.Capt=[];
         trkData[week.num].cart.Capt.push({n:pl.contactName,note:pl.direccion||pl.trackingNum||'',auto:false});
       }
+      carteraPLs[i]._captado = true; // mark as moved
+    } else {
+      carteraPLs[i].estado = 'Captada'; // just update status without moving
     }
-    carteraPLs = carteraPLs.filter((_,idx)=>idx!==i);
   } else {
     carteraPLs[i].estado=val;
   }
@@ -2288,6 +2290,8 @@ function renderDante(){
     <div class="stat-card"><div class="stat-label">Aceptadas</div><div class="stat-val" style="font-size:16px;color:#185FA5">${formatM(comAcep)}</div><div class="stat-sub">${aceptadas} reservas</div></div>
     <div class="stat-card"><div class="stat-label">Facturado (cerradas)</div><div class="stat-val" style="font-size:16px;color:#3B6D11">${formatM(comCerr)}</div><div class="stat-sub">${cerradas} cierres</div></div>
     <div class="stat-card"><div class="stat-label">Caídas</div><div class="stat-val" style="font-size:16px;color:#A32D2D">${formatM(comCaida)}</div><div class="stat-sub">${caidas} reservas perdidas</div></div>
+    <div class="stat-card"><div class="stat-label">Ingreso potencial cartera</div><div class="stat-val" style="font-size:16px;color:#534AB7">${formatM(Math.round(carteraProps.filter(p=>p.estado==='activa').reduce((s,p)=>s+(Number(p.precio)||0)*0.03,0)))}</div><div class="stat-sub">3% de propiedades activas</div></div>
+    <div class="stat-card"><div class="stat-label">Ingreso potencial compradores</div><div class="stat-val" style="font-size:16px;color:#085041">${formatM(Math.round((compradorePBs||[]).filter(p=>p.estado===PB_ESTADOS[1]).reduce((s,p)=>s+(Number(p.presupuesto)||0)*0.03,0)+(compradoresProsp||[]).filter(p=>p.estado==='activo').reduce((s,p)=>s+(Number(p.presupuesto)||0)*0.03,0)))}</div><div class="stat-sub">3% de compradores en búsqueda</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
     <div class="stat-card" style="border-left:3px solid #534AB7">
@@ -3725,9 +3729,9 @@ function renderCompradores(){
   h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">
     <div class="stat-card"><div class="stat-label">Compradores activos</div><div class="stat-val" style="color:#085041">${activos.length}</div></div>
     <div class="stat-card"><div class="stat-label">Presupuesto prom.</div><div class="stat-val" style="font-size:16px">${avgPresupuesto?'$'+Number(avgPresupuesto).toLocaleString('es-AR'):'—'}</div></div>
-    <div class="stat-card"><div class="stat-label">Ingreso potencial (3%)</div><div class="stat-val" style="font-size:16px;color:#3B6D11">${ingresoPotencial?'$'+ingresoPotencial.toLocaleString('es-AR'):'—'}</div></div>
     <div class="stat-card"><div class="stat-label">En búsqueda</div><div class="stat-val" style="color:#534AB7">${pendPBs}</div></div>
     <div class="stat-card"><div class="stat-label">Compradores cerrados</div><div class="stat-val" style="color:#3B6D11">${cerradosPBs+(compradoresVendidos?compradoresVendidos.length:0)}</div></div>
+    <div class="stat-card"><div class="stat-label">Ingreso potencial compradores</div><div class="stat-val" style="font-size:16px;color:#3B6D11">${ingresoPotencial?'$'+ingresoPotencial.toLocaleString('es-AR'):'—'}</div></div>
     
   </div>`;
 
