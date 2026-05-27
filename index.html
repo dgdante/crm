@@ -1699,7 +1699,7 @@ function renderCartera(){
   if(!carteraPLs.length){
     h+='<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreListings aún. Se sincronizan automáticamente desde los toques con resultado PL.</td></tr>';
   } else {
-    carteraPLs.filter(pl=>!pl._captado).forEach((pl,i)=>{ const realPLIdx=carteraPLs.indexOf(pl);
+    carteraPLs.filter(pl=>!pl._captado && pl.estado!=='Captada').forEach((pl,i)=>{ const realPLIdx=carteraPLs.indexOf(pl);
       const di=daysSinceDate(pl.fecha);
       h+=`<tr>
         <td><span class="tracking-num">${pl.trackingNum||'—'}</span></td>
@@ -1968,8 +1968,16 @@ function cambiarEstadoPL(i, val){
 }
 
 function eliminarPL(i){
-  if(!confirm('¿Eliminar este PreListing? Se borrará también del Trackeo Semanal.')) return;
   const pl = carteraPLs[i];
+  // If already Captada, just remove from list (keep trackeo - PL was registered)
+  if(pl.estado==='Captada' || pl._captado){
+    if(!confirm('Este PreListing ya está en Cartera. ¿Eliminar del listado de pipeline?')) return;
+    carteraPLs = carteraPLs.filter((_,j)=>j!==i);
+    renderCartera();
+    return;
+  }
+  // If still pending - remove from trackeo too
+  if(!confirm('¿Eliminar este PreListing? Se borrará también del Trackeo Semanal.')) return;
   if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
     WEEKS.forEach(w=>{ if(trkData[w.num]?.cart?.PL) trkData[w.num].cart.PL=trkData[w.num].cart.PL.filter(e=>e.n!==pl.contactName); });
   }
@@ -2186,8 +2194,8 @@ function syncReservasToTrackeo(){
     const section = r.punta==='Vendedora' ? 'cart' : 'comp';
     const label = r.cliente;
 
-    // Add Oferta at mesToma
-    const weekToma = firstWeekOfMonth(r.mesToma);
+    // Add Oferta at exact fechaToma (or first week of mesToma as fallback)
+    const weekToma = weekForDate(r.fechaToma, r.mesToma);
     if(weekToma){
       if(!trkData[weekToma.num][section].Ofertas) trkData[weekToma.num][section].Ofertas=[];
       trkData[weekToma.num][section].Ofertas.push({n:label,note:'Reserva tomada',auto:true});
