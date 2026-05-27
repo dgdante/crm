@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CRM Inmobiliario</title>
+<title>CRM Team Di Girolamo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -290,7 +290,7 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
 
 <div class="app">
   <div class="header">
-    <div class="logo">CRM <span>Inmobiliario</span></div>
+    <div class="logo">CRM <span style="color:#185FA5">TEAM</span> <span style="color:#A32D2D">Di Girolamo</span></div>
     <div style="display:flex;align-items:center;gap:10px">
       <span id="sync-status" style="font-size:12px;color:#888"></span>
       <button onclick="saveToSheets()" style="font-size:12px;padding:5px 12px;background:#185FA5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:500">💾 Guardar</button>
@@ -1699,7 +1699,7 @@ function renderCartera(){
   if(!carteraPLs.length){
     h+='<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreListings aún. Se sincronizan automáticamente desde los toques con resultado PL.</td></tr>';
   } else {
-    carteraPLs.filter(pl=>!pl._captado && pl.estado!=='Captada' && !carteraProps.some(p=>p.duenio===pl.contactName && p.estadoCartera==='Captada')).forEach((pl,i)=>{ const realPLIdx=carteraPLs.indexOf(pl);
+    carteraPLs.filter(pl=>!pl._captado && pl.estado!=='Captada').forEach((pl,i)=>{ const realPLIdx=carteraPLs.indexOf(pl);
       const di=daysSinceDate(pl.fecha);
       h+=`<tr>
         <td><span class="tracking-num">${pl.trackingNum||'—'}</span></td>
@@ -1968,22 +1968,8 @@ function cambiarEstadoPL(i, val){
 }
 
 function eliminarPL(i){
-  const pl = carteraPLs[i];
-  // If already Captada, just remove from list (keep trackeo - PL was registered)
-  const yaEnCartera = carteraProps.some(p=>p.duenio===pl.contactName && p.estadoCartera==='Captada');
-  if(pl.estado==='Captada' || pl._captado || yaEnCartera){
-    if(!confirm('Este PreListing ya está en Cartera. ¿Eliminar del listado de pipeline?')) return;
-    carteraPLs = carteraPLs.filter((_,j)=>j!==i);
-    renderCartera();
-    return;
-  }
-  // If still pending - remove from trackeo too
-  if(!confirm('¿Eliminar este PreListing? Se borrará también del Trackeo Semanal.')) return;
-  if(typeof trkData!=='undefined' && typeof WEEKS!=='undefined'){
-    WEEKS.forEach(w=>{ if(trkData[w.num]?.cart?.PL) trkData[w.num].cart.PL=trkData[w.num].cart.PL.filter(e=>e.n!==pl.contactName); });
-  }
-  opps = opps.filter(o=>!(o.type==='PL'&&o.contactName===pl.contactName));
-  carteraPLs = carteraPLs.filter((_,j)=>j!==i);
+  if(!confirm('¿Eliminar este PreListing del pipeline?')) return;
+  carteraPLs.splice(i, 1);
   renderCartera();
 }
 
