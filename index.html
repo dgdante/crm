@@ -1969,7 +1969,8 @@ function cambiarEstadoPL(i, val){
 
 function eliminarPL(i){
   if(!confirm('¿Eliminar este PreListing del pipeline?')) return;
-  carteraPLs.splice(i, 1);
+  carteraPLs[i]._captado = true;
+  carteraPLs[i].estado = 'Captada';
   renderCartera();
 }
 
