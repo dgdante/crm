@@ -143,15 +143,21 @@ var gastos = {};
 var trkData = {};
 
 
-async function saveToSheets() {
+async function saveToSheets(){
   showSyncStatus('Guardando...', '#185FA5');
-  // Solo guardamos tiers no-B para reducir tamaño
-  const tiersToSave = {};
-  Object.keys(tiers).forEach(k=>{ if(tiers[k]!=='B') tiersToSave[k]=tiers[k]; });
-  // Solo guardamos touches que tienen datos
+
+  // Build touches to save (only non-auto, non-empty)
   const touchesToSave = {};
-  Object.keys(touches).forEach(k=>{ if(touches[k]&&touches[k].length>0) touchesToSave[k]=touches[k]; });
-  // Compress trkData - only save weeks with actual data
+  Object.keys(touches).forEach(k=>{
+    const arr = touches[k];
+    if(arr && arr.length) touchesToSave[k] = arr;
+  });
+
+  // Build tiers to save (only non-B)
+  const tiersToSave = {};
+  Object.keys(tiers).forEach(k=>{ if(tiers[k]&&tiers[k]!=='B') tiersToSave[k]=tiers[k]; });
+
+  // Compress trkData - only weeks with actual data
   const trkToSave = {};
   Object.keys(trkData).forEach(k=>{
     const w = trkData[k];
@@ -161,35 +167,45 @@ async function saveToSheets() {
     if(hasData) trkToSave[k] = w;
   });
 
-  const data = {
-    touches: touchesToSave, tiers: tiersToSave, opps, oppCounters,
+  // Chunk 1 → B2: everything except touches
+  const dataB2 = {
+    tiers: tiersToSave, opps, oppCounters,
     carteraProps, carteraPLs, potencialesPL, propiedadesVendidas, potencialesPB,
     compradoresProsp, compradorePBs, compradoresVendidos,
     reservas, objetivosMes, gastos, trkData: trkToSave
   };
 
-  try {
-    const payload = JSON.stringify(data);
-    let ok = false;
+  // Chunk 2 → B3: touches only (can be large)
+  const dataB3 = { touches: touchesToSave };
+
+  const sendCell = async (cell, data) => {
+    const payload = JSON.stringify({cell, data: JSON.stringify(data)});
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST', body: payload,
-        headers: {'Content-Type':'text/plain'}, redirect:'follow'
+        method:'POST', body:payload,
+        headers:{'Content-Type':'text/plain'}, redirect:'follow'
       });
       const j = JSON.parse(await res.text());
-      if(j.ok) ok = true;
-    } catch(e1){}
-    if(!ok){
-      await fetch(APPS_SCRIPT_URL, {
-        method:'POST', body:payload,
-        headers:{'Content-Type':'text/plain'}, mode:'no-cors'
-      });
+      return j.ok;
+    } catch(e){
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method:'POST', body:payload,
+          headers:{'Content-Type':'text/plain'}, mode:'no-cors'
+        });
+        return true;
+      } catch(e2){ return false; }
     }
-    showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}), '#3B6D11');
-  } catch(e) {
+  };
+
+  try {
+    await Promise.all([sendCell('B2', dataB2), sendCell('B3', dataB3)]);
+    showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}), '#3B6D11');
+  } catch(e){
     showSyncStatus('Error al guardar: ' + e.message, '#A32D2D');
   }
 }
+
 
 async function loadFromSheets(retryCount=0) {
   showSyncStatus('Cargando datos...', '#185FA5');
@@ -216,11 +232,20 @@ async function loadFromSheets(retryCount=0) {
       if(retryCount < 3){ setTimeout(()=>loadFromSheets(retryCount+1), 2000); return; }
       showSyncStatus('Error parseando datos', '#A32D2D'); return;
     }
-    if(!json.ok || (!json.data && !json.chunks)) {
+    if(!json.ok || (!json.data && !json.chunks && !json.b2)) {
       showSyncStatus('Sin datos previos', '#888'); return;
     }
     // Parse saved data - supports both old B2 and new multi-cell (B2+B3+B4)
-    const loadChunks = json.chunks || (json.data ? [json.data] : []);
+    // Support b2/b3 format, chunks format, or legacy single data format
+    let loadChunks = [];
+    if(json.b2 || json.b3){
+      if(json.b2) loadChunks.push(json.b2);
+      if(json.b3) loadChunks.push(json.b3);
+    } else if(json.chunks){
+      loadChunks = json.chunks;
+    } else if(json.data){
+      loadChunks = [json.data];
+    }
     console.log('CRM LOAD: chunks count='+loadChunks.length, 'sizes='+loadChunks.map(c=>c.length));
     loadChunks.forEach((raw, chunkIdx) => {
       try {
