@@ -2266,6 +2266,10 @@ function renderDante(){
   const facAnualTotal = reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
   const facMasAcep = facAnualTotal + reservas.filter(r=>r.estado==='Aceptada').reduce((s,r)=>s+(Number(r.comision)||0),0);
   const pctMasAcep = objAnualDante>0 ? Math.min(100,Math.round(facMasAcep/objAnualDante*100)) : 0;
+  // Sumatoria de objetivos mensuales hasta el mes actual
+  const mesActual = curYM;
+  const deberiaLlevar = Object.keys(objetivosMes).filter(k=>k!=='anual'&&k<=mesActual).reduce((s,k)=>s+(Number(objetivosMes[k])||0),0);
+  const pctDeberia = objAnualDante>0 ? Math.min(120,Math.round(deberiaLlevar/objAnualDante*100)) : 0;
   const puntasCerradas = reservas.filter(r=>r.estado==='Cerrada').length;
   const pctAnualFact = objAnualDante>0 ? Math.min(100,Math.round(facAnualTotal/objAnualDante*100)) : 0;
   const barFactColor = pctAnualFact>=100?'#3B6D11':pctAnualFact>=70?'#854F0B':'#185FA5';
@@ -2291,10 +2295,24 @@ function renderDante(){
     <div style="height:12px;background:#e0dfd8;border-radius:6px;overflow:hidden;margin-bottom:6px;position:relative">
       <div style="height:100%;width:${pctMasAcep}%;background:#3B6D11;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
       <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
+      ${deberiaLlevar&&objAnualDante?`<div style="position:absolute;left:${Math.min(99,pctDeberia)}%;top:0;height:100%;width:2px;background:#7B3FA0;z-index:2"></div>`:''}
     </div>
-    <div style="display:flex;gap:16px;font-size:12px;margin-bottom:2px">
-      <span><span style="display:inline-block;width:10px;height:10px;background:${barFactColor};border-radius:2px;margin-right:4px"></span>Facturado: <strong>${pctAnualFact}%</strong> — ${formatM(facAnualTotal)}</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;margin-right:4px"></span>+ Aceptadas: <strong>${pctMasAcep}%</strong> — ${formatM(facMasAcep)}</span>
+    <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px;background:#f0f4ff;border-radius:8px;padding:8px 12px;border-left:3px solid ${barFactColor}">
+        <div style="font-size:10px;color:#888">Facturado</div>
+        <div style="font-size:18px;font-weight:700;color:${barFactColor}">${pctAnualFact}%</div>
+        <div style="font-size:11px;color:#555">${formatM(facAnualTotal)}</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#f0faf4;border-radius:8px;padding:8px 12px;border-left:3px solid #3B6D11">
+        <div style="font-size:10px;color:#888">+ Aceptadas</div>
+        <div style="font-size:18px;font-weight:700;color:#3B6D11">${pctMasAcep}%</div>
+        <div style="font-size:11px;color:#555">${formatM(facMasAcep)}</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#fdf4ff;border-radius:8px;padding:8px 12px;border-left:3px solid #7B3FA0">
+        <div style="font-size:10px;color:#888">Deberías llevar</div>
+        <div style="font-size:18px;font-weight:700;color:#7B3FA0">${deberiaLlevar?pctDeberia+'%':'—'}</div>
+        <div style="font-size:11px;color:#555">${deberiaLlevar?formatM(deberiaLlevar):'Cargá obj. por mes'}</div>
+      </div>
     </div>
     <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(Math.max(0,objAnualDante-facMasAcep))+' incluyendo aceptadas'}</div>
     ` : '<div style="font-size:12px;color:#aaa">Ingresá tu objetivo anual para ver el progreso</div>'}
@@ -2431,9 +2449,10 @@ function renderDante(){
       <td>${mesLabel(ym)}${isCur?' <span style="font-size:10px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:10px">actual</span>':''}</td>
       <td style="font-weight:500;color:#3B6D11">${fac?formatM(fac):'—'}</td>
       <td>
-        <input type="number" value="${obj||''}" placeholder="—"
-          style="width:90px;font-size:12px;padding:3px 6px;border:1px solid #e0dfd8;border-radius:6px;color:#888;background:transparent"
-          onchange="guardarObjetivo('${ym}',this.value)"/>
+        <input type="text" value="${obj||''}" placeholder="Escribí y Enter"
+          style="width:100px;font-size:12px;padding:3px 6px;border:1px solid #e0dfd8;border-radius:6px;color:#333;background:#fff"
+          onblur="guardarObjetivo('${ym}',this.value)"
+          onkeydown="if(event.key==='Enter'){guardarObjetivo('${ym}',this.value);this.blur()}"/>
       </td>
       <td style="color:${pctColor};font-weight:500">${pct!==null?pct+'%':'—'}</td>
       <td style="text-align:center">${tom||'—'}</td>
