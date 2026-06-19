@@ -2286,10 +2286,15 @@ function renderDante(){
       </div>
       <span style="font-size:14px;font-weight:600;color:${barFactColor}">${pctAnualFact}%${pctAnualFact>=100?' ✓':''}</span>
     </div>
-    <div style="height:10px;background:#e0dfd8;border-radius:5px;overflow:hidden;margin-bottom:6px">
-      <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:5px;transition:width .4s"></div>
+    <div style="height:12px;background:#e0dfd8;border-radius:6px;overflow:hidden;margin-bottom:6px;position:relative">
+      <div style="height:100%;width:${Math.min(100,Math.round((facAnualTotal+(comAcep||0))/objAnualDante*100))}%;background:#3B6D11;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
+      <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
     </div>
-    <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(faltaAnual)+' para llegar al objetivo'}</div>
+    <div style="display:flex;gap:16px;font-size:12px;margin-bottom:2px">
+      <span><span style="display:inline-block;width:10px;height:10px;background:${barFactColor};border-radius:2px;margin-right:4px"></span>Facturado: <strong>${pctAnualFact}%</strong> — ${formatM(facAnualTotal)}</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;margin-right:4px"></span>+ Aceptadas: <strong>${objAnualDante>0?Math.min(100,Math.round((facAnualTotal+(comAcep||0))/objAnualDante*100))+'%':'—'}</strong> — ${formatM(facAnualTotal+(comAcep||0))}</span>
+    </div>
+    <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(Math.max(0,objAnualDante-facAnualTotal-( comAcep||0)))+' incluyendo aceptadas'}</div>
     ` : '<div style="font-size:12px;color:#aaa">Ingresá tu objetivo anual para ver el progreso</div>'}
   </div>`;
 
