@@ -2264,6 +2264,8 @@ function renderDante(){
 
   // Barra objetivo anual
   const facAnualTotal = reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const facMasAcep = facAnualTotal + reservas.filter(r=>r.estado==='Aceptada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const pctMasAcep = objAnualDante>0 ? Math.min(100,Math.round(facMasAcep/objAnualDante*100)) : 0;
   const puntasCerradas = reservas.filter(r=>r.estado==='Cerrada').length;
   const pctAnualFact = objAnualDante>0 ? Math.min(100,Math.round(facAnualTotal/objAnualDante*100)) : 0;
   const barFactColor = pctAnualFact>=100?'#3B6D11':pctAnualFact>=70?'#854F0B':'#185FA5';
@@ -2287,14 +2289,14 @@ function renderDante(){
       <span style="font-size:14px;font-weight:600;color:${barFactColor}">${pctAnualFact}%${pctAnualFact>=100?' ✓':''}</span>
     </div>
     <div style="height:12px;background:#e0dfd8;border-radius:6px;overflow:hidden;margin-bottom:6px;position:relative">
-      <div style="height:100%;width:${Math.min(100,Math.round((facAnualTotal+(comAcep||0))/objAnualDante*100))}%;background:#3B6D11;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
+      <div style="height:100%;width:${pctMasAcep}%;background:#3B6D11;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
       <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
     </div>
     <div style="display:flex;gap:16px;font-size:12px;margin-bottom:2px">
       <span><span style="display:inline-block;width:10px;height:10px;background:${barFactColor};border-radius:2px;margin-right:4px"></span>Facturado: <strong>${pctAnualFact}%</strong> — ${formatM(facAnualTotal)}</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;margin-right:4px"></span>+ Aceptadas: <strong>${objAnualDante>0?Math.min(100,Math.round((facAnualTotal+(comAcep||0))/objAnualDante*100))+'%':'—'}</strong> — ${formatM(facAnualTotal+(comAcep||0))}</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#3B6D11;border-radius:2px;margin-right:4px"></span>+ Aceptadas: <strong>${pctMasAcep}%</strong> — ${formatM(facMasAcep)}</span>
     </div>
-    <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(Math.max(0,objAnualDante-facAnualTotal-( comAcep||0)))+' incluyendo aceptadas'}</div>
+    <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(Math.max(0,objAnualDante-facMasAcep))+' incluyendo aceptadas'}</div>
     ` : '<div style="font-size:12px;color:#aaa">Ingresá tu objetivo anual para ver el progreso</div>'}
   </div>`;
 
