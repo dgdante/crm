@@ -2269,7 +2269,7 @@ function renderDante(){
   // Sumatoria de objetivos mensuales hasta el mes actual
   const mesActual = curYM;
   const deberiaLlevar = Object.keys(objetivosMes).filter(k=>k!=='anual'&&k<=mesActual).reduce((s,k)=>s+(Number(objetivosMes[k])||0),0);
-  const pctDeberia = objAnualDante>0 ? Math.min(120,Math.round(deberiaLlevar/objAnualDante*100)) : 0;
+  const pctDeberia = deberiaLlevar>0 ? Math.min(200,Math.round(facAnualTotal/deberiaLlevar*100)) : 0;
   const puntasCerradas = reservas.filter(r=>r.estado==='Cerrada').length;
   const pctAnualFact = objAnualDante>0 ? Math.min(100,Math.round(facAnualTotal/objAnualDante*100)) : 0;
   const barFactColor = pctAnualFact>=100?'#3B6D11':pctAnualFact>=70?'#854F0B':'#185FA5';
@@ -2293,9 +2293,9 @@ function renderDante(){
       <span style="font-size:14px;font-weight:600;color:${barFactColor}">${pctAnualFact}%${pctAnualFact>=100?' ✓':''}</span>
     </div>
     <div style="height:12px;background:#e0dfd8;border-radius:6px;overflow:hidden;margin-bottom:6px;position:relative">
+      <div style="height:100%;width:${Math.min(100,Math.round(deberiaLlevar/objAnualDante*100))}%;background:#7B3FA0;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0;opacity:0.5"></div>
       <div style="height:100%;width:${pctMasAcep}%;background:#3B6D11;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
       <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
-      ${deberiaLlevar&&objAnualDante?`<div style="position:absolute;left:${Math.min(99,pctDeberia)}%;top:0;height:100%;width:2px;background:#7B3FA0;z-index:2"></div>`:''}
     </div>
     <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px;background:#f0f4ff;border-radius:8px;padding:8px 12px;border-left:3px solid ${barFactColor}">
@@ -2310,8 +2310,8 @@ function renderDante(){
       </div>
       <div style="flex:1;min-width:120px;background:#fdf4ff;border-radius:8px;padding:8px 12px;border-left:3px solid #7B3FA0">
         <div style="font-size:10px;color:#888">Deberías llevar</div>
-        <div style="font-size:18px;font-weight:700;color:#7B3FA0">${deberiaLlevar?pctDeberia+'%':'—'}</div>
-        <div style="font-size:11px;color:#555">${deberiaLlevar?formatM(deberiaLlevar):'Cargá obj. por mes'}</div>
+        <div style="font-size:18px;font-weight:700;color:#7B3FA0">${deberiaLlevar?formatM(deberiaLlevar):'—'}</div>
+        <div style="font-size:11px;color:#555">${deberiaLlevar?(pctDeberia+'% logrado sobre lo esperado'):'Cargá obj. por mes'}</div>
       </div>
     </div>
     <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(Math.max(0,objAnualDante-facMasAcep))+' incluyendo aceptadas'}</div>
@@ -2920,9 +2920,8 @@ function guardarObjetivoAnual(val){
   renderDante();
 }
 
-function guardarObjetivo(ym){
-  const val=Number(document.getElementById('obj-input').value)||0;
-  objetivosMes[ym]=val;
+function guardarObjetivo(ym, val){
+  objetivosMes[ym] = Number(String(val).replace(/[^0-9.]/g,'')) || 0;
   renderDante();
 }
 </script>
