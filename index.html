@@ -143,15 +143,21 @@ var gastos = {};
 var trkData = {};
 
 
-async function saveToSheets() {
+async function saveToSheets(){
   showSyncStatus('Guardando...', '#185FA5');
-  // Solo guardamos tiers no-B para reducir tamaño
-  const tiersToSave = {};
-  Object.keys(tiers).forEach(k=>{ if(tiers[k]!=='B') tiersToSave[k]=tiers[k]; });
-  // Solo guardamos touches que tienen datos
+
+  // Build touches to save (only non-auto, non-empty)
   const touchesToSave = {};
-  Object.keys(touches).forEach(k=>{ if(touches[k]&&touches[k].length>0) touchesToSave[k]=touches[k]; });
-  // Compress trkData - only save weeks with actual data
+  Object.keys(touches).forEach(k=>{
+    const arr = touches[k];
+    if(arr && arr.length) touchesToSave[k] = arr;
+  });
+
+  // Build tiers to save (only non-B)
+  const tiersToSave = {};
+  Object.keys(tiers).forEach(k=>{ if(tiers[k]&&tiers[k]!=='B') tiersToSave[k]=tiers[k]; });
+
+  // Compress trkData - only weeks with actual data
   const trkToSave = {};
   Object.keys(trkData).forEach(k=>{
     const w = trkData[k];
@@ -161,35 +167,45 @@ async function saveToSheets() {
     if(hasData) trkToSave[k] = w;
   });
 
-  const data = {
-    touches: touchesToSave, tiers: tiersToSave, opps, oppCounters,
+  // Chunk 1 → B2: everything except touches
+  const dataB2 = {
+    tiers: tiersToSave, opps, oppCounters,
     carteraProps, carteraPLs, potencialesPL, propiedadesVendidas, potencialesPB,
     compradoresProsp, compradorePBs, compradoresVendidos,
     reservas, objetivosMes, gastos, trkData: trkToSave
   };
 
-  try {
-    const payload = JSON.stringify(data);
-    let ok = false;
+  // Chunk 2 → B3: touches only (can be large)
+  const dataB3 = { touches: touchesToSave };
+
+  const sendCell = async (cell, data) => {
+    const payload = JSON.stringify({cell, data: JSON.stringify(data)});
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST', body: payload,
-        headers: {'Content-Type':'text/plain'}, redirect:'follow'
+        method:'POST', body:payload,
+        headers:{'Content-Type':'text/plain'}, redirect:'follow'
       });
       const j = JSON.parse(await res.text());
-      if(j.ok) ok = true;
-    } catch(e1){}
-    if(!ok){
-      await fetch(APPS_SCRIPT_URL, {
-        method:'POST', body:payload,
-        headers:{'Content-Type':'text/plain'}, mode:'no-cors'
-      });
+      return j.ok;
+    } catch(e){
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method:'POST', body:payload,
+          headers:{'Content-Type':'text/plain'}, mode:'no-cors'
+        });
+        return true;
+      } catch(e2){ return false; }
     }
-    showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}), '#3B6D11');
-  } catch(e) {
+  };
+
+  try {
+    await Promise.all([sendCell('B2', dataB2), sendCell('B3', dataB3)]);
+    showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}), '#3B6D11');
+  } catch(e){
     showSyncStatus('Error al guardar: ' + e.message, '#A32D2D');
   }
 }
+
 
 async function loadFromSheets(retryCount=0) {
   showSyncStatus('Cargando datos...', '#185FA5');
@@ -216,11 +232,20 @@ async function loadFromSheets(retryCount=0) {
       if(retryCount < 3){ setTimeout(()=>loadFromSheets(retryCount+1), 2000); return; }
       showSyncStatus('Error parseando datos', '#A32D2D'); return;
     }
-    if(!json.ok || (!json.data && !json.chunks)) {
+    if(!json.ok || (!json.data && !json.chunks && !json.b2)) {
       showSyncStatus('Sin datos previos', '#888'); return;
     }
     // Parse saved data - supports both old B2 and new multi-cell (B2+B3+B4)
-    const loadChunks = json.chunks || (json.data ? [json.data] : []);
+    // Support b2/b3 format, chunks format, or legacy single data format
+    let loadChunks = [];
+    if(json.b2 || json.b3){
+      if(json.b2) loadChunks.push(json.b2);
+      if(json.b3) loadChunks.push(json.b3);
+    } else if(json.chunks){
+      loadChunks = json.chunks;
+    } else if(json.data){
+      loadChunks = [json.data];
+    }
     console.log('CRM LOAD: chunks count='+loadChunks.length, 'sizes='+loadChunks.map(c=>c.length));
     loadChunks.forEach((raw, chunkIdx) => {
       try {
@@ -2239,6 +2264,12 @@ function renderDante(){
 
   // Barra objetivo anual
   const facAnualTotal = reservas.filter(r=>r.estado==='Cerrada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const facMasAcep = facAnualTotal + reservas.filter(r=>r.estado==='Aceptada').reduce((s,r)=>s+(Number(r.comision)||0),0);
+  const pctMasAcep = objAnualDante>0 ? Math.min(100,Math.round(facMasAcep/objAnualDante*100)) : 0;
+  // Sumatoria de objetivos mensuales hasta el mes actual
+  const mesActual = curYM;
+  const deberiaLlevar = Object.keys(objetivosMes).filter(k=>k!=='anual'&&k<=mesActual).reduce((s,k)=>s+(Number(objetivosMes[k])||0),0);
+  const pctDeberia = deberiaLlevar>0 ? Math.min(200,Math.round(facAnualTotal/deberiaLlevar*100)) : 0;
   const puntasCerradas = reservas.filter(r=>r.estado==='Cerrada').length;
   const pctAnualFact = objAnualDante>0 ? Math.min(100,Math.round(facAnualTotal/objAnualDante*100)) : 0;
   const barFactColor = pctAnualFact>=100?'#3B6D11':pctAnualFact>=70?'#854F0B':'#185FA5';
@@ -2261,10 +2292,29 @@ function renderDante(){
       </div>
       <span style="font-size:14px;font-weight:600;color:${barFactColor}">${pctAnualFact}%${pctAnualFact>=100?' ✓':''}</span>
     </div>
-    <div style="height:10px;background:#e0dfd8;border-radius:5px;overflow:hidden;margin-bottom:6px">
-      <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:5px;transition:width .4s"></div>
+    <div style="height:12px;background:#e0dfd8;border-radius:6px;overflow:hidden;margin-bottom:6px;position:relative">
+      <div style="height:100%;width:${Math.min(100,Math.round(deberiaLlevar/objAnualDante*100))}%;background:#7B3FA0;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0;opacity:0.5"></div>
+      <div style="height:100%;width:${pctMasAcep}%;background:#3B6D11;border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
+      <div style="height:100%;width:${pctAnualFact}%;background:${barFactColor};border-radius:6px;transition:width .4s;position:absolute;left:0;top:0"></div>
     </div>
-    <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(faltaAnual)+' para llegar al objetivo'}</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px;background:#f0f4ff;border-radius:8px;padding:8px 12px;border-left:3px solid ${barFactColor}">
+        <div style="font-size:10px;color:#888">Facturado</div>
+        <div style="font-size:18px;font-weight:700;color:${barFactColor}">${pctAnualFact}%</div>
+        <div style="font-size:11px;color:#555">${formatM(facAnualTotal)}</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#f0faf4;border-radius:8px;padding:8px 12px;border-left:3px solid #3B6D11">
+        <div style="font-size:10px;color:#888">+ Aceptadas</div>
+        <div style="font-size:18px;font-weight:700;color:#3B6D11">${pctMasAcep}%</div>
+        <div style="font-size:11px;color:#555">${formatM(facMasAcep)}</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#fdf4ff;border-radius:8px;padding:8px 12px;border-left:3px solid #7B3FA0">
+        <div style="font-size:10px;color:#888">Deberías llevar</div>
+        <div style="font-size:18px;font-weight:700;color:#7B3FA0">${deberiaLlevar?formatM(deberiaLlevar):'—'}</div>
+        <div style="font-size:11px;color:#555">${deberiaLlevar?(pctDeberia+'% logrado sobre lo esperado'):'Cargá obj. por mes'}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#888">${pctAnualFact>=100?'¡Objetivo anual cumplido! 🎉':'Faltan '+formatM(Math.max(0,objAnualDante-facMasAcep))+' incluyendo aceptadas'}</div>
     ` : '<div style="font-size:12px;color:#aaa">Ingresá tu objetivo anual para ver el progreso</div>'}
   </div>`;
 
@@ -2399,9 +2449,10 @@ function renderDante(){
       <td>${mesLabel(ym)}${isCur?' <span style="font-size:10px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:10px">actual</span>':''}</td>
       <td style="font-weight:500;color:#3B6D11">${fac?formatM(fac):'—'}</td>
       <td>
-        <input type="number" value="${obj||''}" placeholder="—"
-          style="width:90px;font-size:12px;padding:3px 6px;border:1px solid #e0dfd8;border-radius:6px;color:#888;background:transparent"
-          onchange="guardarObjetivo('${ym}',this.value)"/>
+        <input type="text" value="${obj||''}" placeholder="Escribí y Enter"
+          style="width:100px;font-size:12px;padding:3px 6px;border:1px solid #e0dfd8;border-radius:6px;color:#333;background:#fff"
+          onblur="guardarObjetivo('${ym}',this.value)"
+          onkeydown="if(event.key==='Enter'){guardarObjetivo('${ym}',this.value);this.blur()}"/>
       </td>
       <td style="color:${pctColor};font-weight:500">${pct!==null?pct+'%':'—'}</td>
       <td style="text-align:center">${tom||'—'}</td>
@@ -2869,9 +2920,8 @@ function guardarObjetivoAnual(val){
   renderDante();
 }
 
-function guardarObjetivo(ym){
-  const val=Number(document.getElementById('obj-input').value)||0;
-  objetivosMes[ym]=val;
+function guardarObjetivo(ym, val){
+  objetivosMes[ym] = Number(String(val).replace(/[^0-9.]/g,'')) || 0;
   renderDante();
 }
 </script>
