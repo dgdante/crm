@@ -119,7 +119,7 @@ window.onerror = function(msg, src, line, col, err){
 };
 </script>
 
-<<script>
+<script>
 // ══════════════════════════════════════════════════
 //  GOOGLE SHEETS SYNC — via Apps Script
 // ══════════════════════════════════════════════════
@@ -143,10 +143,21 @@ var gastos = {};
 var trkData = {};
 
 
-async function saveToSheets(){
-  showSyncStatus('Guardando...', '#185FA5');
+// ── Protecciones de guardado ──
+var crmLoaded = false;   // true solo cuando los datos terminaron de cargar bien
+var crmLastSize = 0;     // tamaño de lo último cargado/guardado
+var crmSaving = false;
 
-  // Build touches to save (only non-auto, non-empty)
+async function saveToSheets(opts){
+  const silent = !!(opts && opts.silent);
+  if(!crmLoaded){
+    showSyncStatus('⚠ No se guardó: los datos todavía no cargaron. Apretá ↓ Cargar.', '#A32D2D');
+    if(!silent) alert('Todavía no terminaron de cargar tus datos, así que no guardé nada (para no pisar lo que hay en la planilla).\n\nApretá ↓ Cargar, esperá "✓ Datos cargados" y volvé a guardar.');
+    return false;
+  }
+  if(crmSaving){ return false; }
+
+  // Build touches to save (only non-empty)
   const touchesToSave = {};
   Object.keys(touches).forEach(k=>{
     const arr = touches[k];
@@ -162,47 +173,55 @@ async function saveToSheets(){
   Object.keys(trkData).forEach(k=>{
     const w = trkData[k];
     const hasData = (w.prosp?.Reuniones?.length||0)+(w.cart?.PL?.length||0)+(w.cart?.Capt?.length||0)+
-      (w.cart?.Ofertas?.length||0)+(w.cart?.Cierres?.length||0)+(w.cart?.BP?.length||0)+
-      (w.comp?.PB?.length||0)+(w.comp?.Ofertas?.length||0)+(w.comp?.Cierres?.length||0) > 0;
+      (w.cart?.Ofertas?.length||0)+(w.cart?.Cierres?.length||0)+(w.cart?.BP?.length||0)+(w.cart?.Referidos?.length||0)+
+      (w.comp?.PB?.length||0)+(w.comp?.Ofertas?.length||0)+(w.comp?.Cierres?.length||0)+(w.comp?.Referidos?.length||0) > 0;
     if(hasData) trkToSave[k] = w;
   });
 
-  // Chunk 1 → B2: everything except touches
-  const dataB2 = {
+  // Todo junto en un solo paquete: se guarda completo o no se guarda nada
+  const allData = {
     tiers: tiersToSave, opps, oppCounters,
     carteraProps, carteraPLs, potencialesPL, propiedadesVendidas, potencialesPB,
     compradoresProsp, compradorePBs, compradoresVendidos,
-    reservas, objetivosMes, gastos, trkData: trkToSave
+    reservas, objetivosMes, gastos, trkData: trkToSave,
+    touches: touchesToSave
   };
+  const dataStr = JSON.stringify(allData);
 
-  // Chunk 2 → B3: touches only (can be large)
-  const dataB3 = { touches: touchesToSave };
-
-  const sendCell = async (cell, data) => {
-    const payload = JSON.stringify({cell, data: JSON.stringify(data)});
-    try {
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method:'POST', body:payload,
-        headers:{'Content-Type':'text/plain'}, redirect:'follow'
-      });
-      const j = JSON.parse(await res.text());
-      return j.ok;
-    } catch(e){
-      try {
-        await fetch(APPS_SCRIPT_URL, {
-          method:'POST', body:payload,
-          headers:{'Content-Type':'text/plain'}, mode:'no-cors'
-        });
-        return true;
-      } catch(e2){ return false; }
+  // Freno si lo que se va a guardar es mucho más chico que lo que había
+  if(crmLastSize > 2000 && dataStr.length < crmLastSize * 0.7){
+    if(silent){
+      showSyncStatus('⚠ Guardado automático frenado: hay menos datos que antes. Revisá y guardá a mano.', '#A32D2D');
+      return false;
     }
-  };
+    const ok = confirm('ATENCIÓN: lo que vas a guardar es bastante más chico que lo que hay en la planilla ('+
+      Math.round(dataStr.length/1000)+'k vs '+Math.round(crmLastSize/1000)+'k).\n\n'+
+      'Si no borraste cosas a propósito, cancelá y apretá ↓ Cargar.\n\n¿Guardar igual?');
+    if(!ok){ showSyncStatus('Guardado cancelado', '#854F0B'); return false; }
+  }
 
+  crmSaving = true;
+  showSyncStatus('Guardando...', '#185FA5');
   try {
-    await Promise.all([sendCell('B2', dataB2), sendCell('B3', dataB3)]);
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
+      body: JSON.stringify({action:'saveAll', data: dataStr}),
+      headers:{'Content-Type':'text/plain'}, redirect:'follow'
+    });
+    const text = await res.text();
+    let j;
+    try { j = JSON.parse(text); }
+    catch(e){ throw new Error('Respuesta inesperada de Google (¿se actualizó el Apps Script?)'); }
+    if(!j.ok) throw new Error(j.error || 'Google rechazó el guardado');
+    crmLastSize = dataStr.length;
     showSyncStatus('✓ Guardado ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}), '#3B6D11');
+    return true;
   } catch(e){
-    showSyncStatus('Error al guardar: ' + e.message, '#A32D2D');
+    showSyncStatus('✗ NO se guardó: ' + e.message, '#A32D2D');
+    if(!silent) alert('No se pudo guardar en Google Sheets.\n\n' + e.message + '\n\nNo cierres la página y probá de nuevo con 💾 Guardar.');
+    return false;
+  } finally {
+    crmSaving = false;
   }
 }
 
@@ -232,13 +251,19 @@ async function loadFromSheets(retryCount=0) {
       if(retryCount < 3){ setTimeout(()=>loadFromSheets(retryCount+1), 2000); return; }
       showSyncStatus('Error parseando datos', '#A32D2D'); return;
     }
-    if(!json.ok || (!json.data && !json.chunks && !json.b2)) {
+    if(!json.ok){
+      showSyncStatus('Error cargando: ' + (json.error||'respuesta inválida'), '#A32D2D'); return;
+    }
+    if(!json.data && !json.chunks && !json.b2) {
+      crmLoaded = true; crmLastSize = 0;
       showSyncStatus('Sin datos previos', '#888'); return;
     }
     // Parse saved data - supports both old B2 and new multi-cell (B2+B3+B4)
     // Support b2/b3 format, chunks format, or legacy single data format
     let loadChunks = [];
-    if(json.b2 || json.b3){
+    if(json.format==='split' && json.data){
+      loadChunks.push(json.data);
+    } else if(json.b2 || json.b3){
       if(json.b2) loadChunks.push(json.b2);
       if(json.b3) loadChunks.push(json.b3);
     } else if(json.chunks){
@@ -290,6 +315,8 @@ async function loadFromSheets(retryCount=0) {
       if(!trkData[w.num].prosp) trkData[w.num].prosp={Reuniones:[]};
     });
 
+    crmLoaded = true;
+    crmLastSize = loadChunks.reduce((a,c)=>a+(typeof c==='string'?c.length:JSON.stringify(c).length),0);
     showSyncStatus('✓ Datos cargados', '#3B6D11');
     try{updateStats();}catch(e){}
     try{applyFilters();}catch(e){}
@@ -307,7 +334,7 @@ function showSyncStatus(msg, color) {
 }
 
 // Auto-save cada 60 segundos solo si hay contactos Y tiers cargados
-setInterval(()=>{ if(contacts.length>0 && Object.keys(tiers).length>0) saveToSheets(); }, 60000);
+setInterval(()=>{ if(crmLoaded && contacts.length>0 && Object.keys(tiers).length>0) saveToSheets({silent:true}); }, 60000);
 
 // Cargar al abrir
 window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
