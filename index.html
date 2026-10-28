@@ -85,6 +85,7 @@ select.tier-sel{font-size:12px;padding:2px 6px;border:1px solid #e0dfd8;border-r
 .btn-opp:hover{background:#3C3489}
 .legend{display:flex;gap:14px;align-items:center;font-size:11px;color:#888}
 .table-wrap{border:1px solid #e0dfd8;border-radius:10px;overflow:hidden;background:#fff}
+#consultas-tabla th,#consultas-tabla td{padding-left:9px;padding-right:9px}
 .pag-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-top:1px solid #e0dfd8;background:#f5f4f0}
 input[type=text],input[type=date],input[type=datetime-local],select,textarea{border:1px solid #e0dfd8;border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:#1a1a1a;width:100%;outline:none;transition:border-color .15s}
 input:focus,select:focus,textarea:focus{border-color:#185FA5}
@@ -135,6 +136,7 @@ var potencialesPL = [];
 var potencialesPB = [];
 var compradoresPerdidos = [];
 var compradoresReferidos = [];
+var consultas = [];
 var propiedadesVendidas = [];
 var compradoresProsp = [];
 var compradorePBs = [];
@@ -184,7 +186,7 @@ async function saveToSheets(opts){
   const allData = {
     tiers: tiersToSave, opps, oppCounters,
     carteraProps, carteraPLs, potencialesPL, propiedadesVendidas, potencialesPB,
-    compradoresProsp, compradorePBs, compradoresVendidos, compradoresPerdidos, compradoresReferidos,
+    compradoresProsp, compradorePBs, compradoresVendidos, compradoresPerdidos, compradoresReferidos, consultas,
     reservas, objetivosMes, gastos, trkData: trkToSave,
     touches: touchesToSave
   };
@@ -292,6 +294,7 @@ async function loadFromSheets(retryCount=0) {
         if(d.compradoresVendidos) compradoresVendidos=d.compradoresVendidos;
         if(d.compradoresPerdidos) compradoresPerdidos=d.compradoresPerdidos;
         if(d.compradoresReferidos) compradoresReferidos=d.compradoresReferidos;
+        if(d.consultas) consultas=d.consultas;
         if(d.reservas)          reservas=d.reservas;
         if(d.objetivosMes)      objetivosMes=d.objetivosMes;
         if(d.gastos)            gastos=d.gastos;
@@ -360,6 +363,7 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
     <div class="tab" onclick="showTab('trackeo')">Trackeo Semanal</div>
     <div class="tab" onclick="showTab('cartera')">Cartera</div>
     <div class="tab" onclick="showTab('compradores')">Compradores</div>
+    <div class="tab" onclick="showTab('consultas')">Consultas</div>
     <div class="tab" onclick="showTab('dante')">Facturación</div>
     <div class="tab" onclick="showTab('team')">Team consolidado</div>
     <div class="tab" onclick="showTab('balance')">Balance</div>
@@ -531,6 +535,11 @@ window.addEventListener('load', ()=>setTimeout(loadFromSheets, 800));
     <div id="compradores-view"></div>
   </div>
 
+  <!-- TAB: CONSULTAS -->
+  <div id="tab-consultas" style="display:none">
+    <div id="consultas-view"></div>
+  </div>
+
   <!-- TAB: R TEAM ACUM -->
   <div id="tab-team" style="display:none">
     <div class="coming-soon">
@@ -686,11 +695,11 @@ function getLastTouch(id){
 }
 
 function showTab(id){
-  ['db','trackeo','cartera','compradores','dante','team','balance'].forEach(t=>{
+  ['db','trackeo','cartera','compradores','consultas','dante','team','balance'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=t===id?'block':'none';
   });
   document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active',['db','trackeo','cartera','compradores','dante','team','balance'][i]===id);
+    el.classList.toggle('active',['db','trackeo','cartera','compradores','consultas','dante','team','balance'][i]===id);
   });
   if(id==='opps') renderOpps();
   if(id==='trackeo'){
@@ -710,6 +719,7 @@ function showTab(id){
   if(id==='balance') renderBalance();
   if(id==='team') renderTeam();
   if(id==='compradores') renderCompradores();
+  if(id==='consultas') renderConsultas();
 }
 
 function parseCSVLine(line){
@@ -4369,7 +4379,7 @@ function abrirModalCierreReferido(i){
   document.getElementById('mcr-comision').value = r.facturacion||'';
   document.getElementById('mcr-fecha').value = r.fechaCierre||_hoy();
   m.classList.add('open');
-  setTimeout(()=>document.getElementById('mcr-precio').focus(),50);
+  document.getElementById('mcr-precio').focus();
 }
 function cerrarModalCierreReferido(){
   const m=document.getElementById('modal-cierre-ref'); if(m) m.classList.remove('open');
@@ -4429,6 +4439,254 @@ function eliminarPerdido(i){
   if(!confirm('¿Eliminar este comprador perdido?')) return;
   compradoresPerdidos.splice(i,1);
   renderCompradores();
+}
+</script>
+<script>
+// ══════════════════════════════════════════════════
+//  CONSULTAS
+// ══════════════════════════════════════════════════
+const CONS_CONTACTO = ['No contactado','Contactado'];
+const CONS_ESTADOS  = ['Pendiente','Activo','No califica','Perdido'];
+let _consEditIdx = null, _consRecIdx = null;
+window.consFiltro = {estado:'', contacto:'', q:''};
+
+function _consHoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Propiedades de Cartera disponibles para elegir (no vendidas)
+function propiedadesCartera(){
+  const out=[]; const vistos=new Set();
+  (carteraProps||[]).forEach(p=>{
+    if(!p || !p.direccion || p.estadoCartera==='Vendida') return;
+    const k=p.direccion.trim().toLowerCase(); if(vistos.has(k)) return; vistos.add(k);
+    out.push({direccion:p.direccion, label:p.direccion+(p.tipo?' · '+p.tipo:'')+(p.duenio?' · '+p.duenio:'')});
+  });
+  return out;
+}
+
+function renderConsultas(){
+  const el=document.getElementById('consultas-view'); if(!el) return;
+  if(!Array.isArray(consultas)) consultas=[];
+  const hoy=_consHoy();
+  const f=window.consFiltro;
+
+  const total=consultas.length;
+  const sinContactar=consultas.filter(c=>c.contacto!=='Contactado').length;
+  const activas=consultas.filter(c=>c.estado==='Activo').length;
+  const recPend=consultas.filter(c=>c.recontacto && c.recontacto.slice(0,10)<=hoy && !['Perdido','No califica'].includes(c.estado)).length;
+
+  let h='';
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
+    <div><div style="font-size:18px;font-weight:500">Consultas</div>
+    <div style="font-size:13px;color:#888;margin-top:2px">Registro de consultas entrantes y recontactos</div></div>
+    <button class="btn-primary" onclick="abrirModalConsulta(null)">+ Nueva consulta</button>
+  </div>`;
+
+  h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem">
+    <div class="stat-card"><div class="stat-label">Consultas</div><div class="stat-val">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Sin contactar</div><div class="stat-val" style="color:${sinContactar?'#A32D2D':'#1a1a1a'}">${sinContactar}</div></div>
+    <div class="stat-card"><div class="stat-label">Activas</div><div class="stat-val" style="color:#085041">${activas}</div></div>
+    <div class="stat-card"><div class="stat-label">Recontactos para hoy o vencidos</div><div class="stat-val" style="color:${recPend?'#854F0B':'#1a1a1a'}">${recPend}</div></div>
+  </div>`;
+
+  const selSt='font-size:12px;padding:6px 8px;border-radius:8px;border:1px solid #e0dfd8;background:#fff;width:auto';
+  h+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input type="text" placeholder="Buscar nombre, teléfono, email o propiedad" value="${_esc(f.q)}" oninput="window.consFiltro.q=this.value;renderConsultasTabla()" style="${selSt};flex:1 1 220px;width:auto">
+    <select onchange="window.consFiltro.contacto=this.value;renderConsultasTabla()" style="${selSt}">
+      <option value="">Contactado y no contactado</option>${CONS_CONTACTO.map(x=>`<option ${f.contacto===x?'selected':''}>${x}</option>`).join('')}</select>
+    <select onchange="window.consFiltro.estado=this.value;renderConsultasTabla()" style="${selSt}">
+      <option value="">Todos los estados</option>${CONS_ESTADOS.map(x=>`<option ${f.estado===x?'selected':''}>${x}</option>`).join('')}</select>
+  </div>`;
+  h+='<div id="consultas-tabla"></div>';
+  el.innerHTML=h;
+  renderConsultasTabla();
+}
+
+function renderConsultasTabla(){
+  const box=document.getElementById('consultas-tabla'); if(!box) return;
+  const f=window.consFiltro, hoy=_consHoy(), q=(f.q||'').toLowerCase().trim();
+  const filas=consultas.map((c,i)=>({c,i})).filter(({c})=>{
+    if(f.estado && c.estado!==f.estado) return false;
+    if(f.contacto && (c.contacto||'No contactado')!==f.contacto) return false;
+    if(q && ![c.nombre,c.telefono,c.email,c.propiedad].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a,b)=>(b.c.fecha||'').localeCompare(a.c.fecha||'') || b.i-a.i);
+
+  const selSt='font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #e0dfd8;width:auto;min-width:104px';
+  const estStyle={ 'Pendiente':'background:#FAEEDA;color:#633806','Activo':'background:#E1F5EE;color:#085041','No califica':'background:#f0efe9;color:#555','Perdido':'background:#FCEBEB;color:#791F1F' };
+  let h=`<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:980px">
+    <thead><tr><th>Fecha</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Propiedad consultada</th><th>Contacto</th><th>Estado</th><th>Recontacto</th><th></th></tr></thead><tbody>`;
+  if(!filas.length){
+    h+=`<tr><td colspan="9" style="padding:2.5rem;text-align:center;color:#aaa">${consultas.length?'Ninguna consulta coincide con el filtro.':'Todavía no cargaste consultas. Tocá "+ Nueva consulta".'}</td></tr>`;
+  } else {
+    filas.forEach(({c,i})=>{
+      const cont=c.contacto||'No contactado', est=c.estado||'Pendiente';
+      let rec='<span style="color:#ccc">—</span>';
+      if(c.recontacto){
+        const d=c.recontacto.slice(0,10), hh=c.recontacto.slice(11,16);
+        const cerrada=['Perdido','No califica'].includes(est);
+        const col=cerrada?'#aaa':d<hoy?'#A32D2D':d===hoy?'#854F0B':'#1a1a1a';
+        rec=`<span style="color:${col};font-weight:${!cerrada&&d<=hoy?'600':'400'}">${d.slice(8,10)}/${d.slice(5,7)}${hh?' '+hh:''}${!cerrada&&d<hoy?' · vencido':!cerrada&&d===hoy?' · hoy':''}</span>`;
+      }
+      h+=`<tr>
+        <td style="font-size:12px;color:#888;white-space:nowrap">${c.fecha?c.fecha.slice(8,10)+'/'+c.fecha.slice(5,7)+'/'+c.fecha.slice(2,4):'—'}</td>
+        <td style="font-weight:500;font-size:13px">${_esc(c.nombre)||'—'}${c.nota?`<div style="font-size:11px;color:#aaa;font-weight:400">${_esc(c.nota)}</div>`:''}</td>
+        <td style="font-size:12px;white-space:nowrap">${c.telefono?`<a href="tel:${_esc(c.telefono.replace(/[^0-9+]/g,''))}" style="color:#185FA5;text-decoration:none">${_esc(c.telefono)}</a>`:'—'}</td>
+        <td style="font-size:12px">${c.email?`<a href="mailto:${_esc(c.email)}" style="color:#185FA5;text-decoration:none">${_esc(c.email)}</a>`:'—'}</td>
+        <td style="font-size:12px;color:#555">${_esc(c.propiedad)||'—'}</td>
+        <td><select onchange="cambiarCampoConsulta(${i},'contacto',this.value)" style="${selSt};${cont==='Contactado'?'background:#EAF3DE;color:#3B6D11':'background:#FCEBEB;color:#A32D2D'}">
+          ${CONS_CONTACTO.map(x=>`<option ${cont===x?'selected':''}>${x}</option>`).join('')}</select></td>
+        <td><select onchange="cambiarCampoConsulta(${i},'estado',this.value)" style="${selSt};${estStyle[est]||''}">
+          ${CONS_ESTADOS.map(x=>`<option ${est===x?'selected':''}>${x}</option>`).join('')}</select></td>
+        <td style="font-size:12px;white-space:nowrap">${rec}
+          <button onclick="abrirModalRecontacto(${i})" title="Agendar recontacto" style="font-size:11px;padding:2px 7px;margin-left:4px;border:1px solid #e0dfd8;background:#fff;border-radius:6px;cursor:pointer">📅</button></td>
+        <td style="white-space:nowrap">
+          <button onclick="abrirModalConsulta(${i})" class="btn-sec" title="Editar" style="font-size:11px;padding:3px 8px;margin-right:4px">✎</button>
+          <button onclick="eliminarConsulta(${i})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button>
+        </td>
+      </tr>`;
+    });
+  }
+  h+='</tbody></table></div></div>';
+  box.innerHTML=h;
+}
+
+function cambiarCampoConsulta(i,campo,val){ if(consultas[i]){ consultas[i][campo]=val; renderConsultas(); } }
+function eliminarConsulta(i){
+  if(!confirm('¿Eliminar la consulta de '+(consultas[i]?.nombre||'')+'?')) return;
+  consultas.splice(i,1); renderConsultas();
+}
+
+function _crearModalesConsultas(){
+  if(document.getElementById('modal-consulta')) return;
+  const m=document.createElement('div'); m.className='overlay'; m.id='modal-consulta';
+  m.innerHTML=`<div class="modal" style="max-width:460px">
+    <h3 id="mcons-title">Nueva consulta</h3>
+    <label class="field-label">Nombre y apellido <span class="req">*</span></label>
+    <input type="text" id="mcons-nombre" placeholder="Ej: María González"/>
+    <label class="field-label">Teléfono</label>
+    <input type="tel" id="mcons-tel" placeholder="Ej: 221 555 1234"/>
+    <label class="field-label">Email</label>
+    <input type="email" id="mcons-email" placeholder="Ej: maria@mail.com"/>
+    <label class="field-label">Fecha de la consulta</label>
+    <input type="date" id="mcons-fecha"/>
+    <label class="field-label">Propiedad consultada</label>
+    <select id="mcons-prop" onchange="document.getElementById('mcons-prop-otra').style.display=this.value==='__otra'?'block':'none'"></select>
+    <input type="text" id="mcons-prop-otra" placeholder="Escribí la propiedad o búsqueda" style="display:none;margin-top:6px"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="field-label">Contacto</label><select id="mcons-contacto">${CONS_CONTACTO.map(x=>'<option>'+x+'</option>').join('')}</select></div>
+      <div><label class="field-label">Estado</label><select id="mcons-estado">${CONS_ESTADOS.map(x=>'<option>'+x+'</option>').join('')}</select></div>
+    </div>
+    <label class="field-label">Nota</label>
+    <input type="text" id="mcons-nota" placeholder="Opcional (ej: vino por Zonaprop, busca 2 amb)"/>
+    <div class="modal-btns">
+      <button class="btn-sec" onclick="cerrarModalConsulta()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarConsulta()">Guardar</button>
+    </div></div>`;
+  m.addEventListener('click',e=>{if(e.target===m)cerrarModalConsulta();});
+  document.body.appendChild(m);
+
+  const r=document.createElement('div'); r.className='overlay'; r.id='modal-recontacto';
+  r.innerHTML=`<div class="modal" style="max-width:380px">
+    <h3>Agendar recontacto</h3>
+    <div id="mrec-nombre" style="font-size:13px;color:#555;margin-bottom:6px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="field-label">Fecha <span class="req">*</span></label><input type="date" id="mrec-fecha"/></div>
+      <div><label class="field-label">Hora</label><input type="time" id="mrec-hora"/></div>
+    </div>
+    <label class="field-label">Nota para el llamado</label>
+    <input type="text" id="mrec-nota" placeholder="Opcional"/>
+    <div style="font-size:11px;color:#888;margin-top:10px">Se abre Google Calendar con el evento "Llamar a …" ya completo; tocá Guardar ahí para confirmarlo.</div>
+    <div class="modal-btns">
+      <button class="btn-sec" id="mrec-quitar" onclick="quitarRecontacto()" style="margin-right:auto;display:none">Quitar</button>
+      <button class="btn-sec" onclick="cerrarModalRecontacto()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarRecontacto()">Agendar</button>
+    </div></div>`;
+  r.addEventListener('click',e=>{if(e.target===r)cerrarModalRecontacto();});
+  document.body.appendChild(r);
+}
+
+function abrirModalConsulta(i){
+  _crearModalesConsultas();
+  _consEditIdx=i;
+  const c=i!==null?consultas[i]:null;
+  const props=propiedadesCartera();
+  const sel=document.getElementById('mcons-prop');
+  const enLista=c&&c.propiedad&&props.some(p=>p.direccion===c.propiedad);
+  sel.innerHTML='<option value="">— Sin especificar —</option>'
+    + (props.length?'<optgroup label="Cartera">'+props.map(p=>`<option value="${_esc(p.direccion)}">${_esc(p.label)}</option>`).join('')+'</optgroup>':'')
+    + '<option value="__otra">Otra (escribir)…</option>';
+  const otra=document.getElementById('mcons-prop-otra');
+  if(c&&c.propiedad&&!enLista){ sel.value='__otra'; otra.value=c.propiedad; otra.style.display='block'; }
+  else { sel.value=c?.propiedad||''; otra.value=''; otra.style.display='none'; }
+  document.getElementById('mcons-title').textContent=c?'Editar consulta':'Nueva consulta';
+  document.getElementById('mcons-nombre').value=c?.nombre||'';
+  document.getElementById('mcons-tel').value=c?.telefono||'';
+  document.getElementById('mcons-email').value=c?.email||'';
+  document.getElementById('mcons-fecha').value=c?.fecha||_consHoy();
+  document.getElementById('mcons-contacto').value=c?.contacto||'No contactado';
+  document.getElementById('mcons-estado').value=c?.estado||'Pendiente';
+  document.getElementById('mcons-nota').value=c?.nota||'';
+  document.getElementById('modal-consulta').classList.add('open');
+  document.getElementById('mcons-nombre').focus();
+}
+function cerrarModalConsulta(){ document.getElementById('modal-consulta')?.classList.remove('open'); _consEditIdx=null; }
+
+function guardarConsulta(){
+  const nombre=document.getElementById('mcons-nombre').value.trim();
+  if(!nombre){ alert('Ingresá el nombre y apellido.'); return; }
+  const sel=document.getElementById('mcons-prop').value;
+  const propiedad= sel==='__otra' ? document.getElementById('mcons-prop-otra').value.trim() : sel;
+  const obj={
+    nombre, telefono:document.getElementById('mcons-tel').value.trim(),
+    email:document.getElementById('mcons-email').value.trim(),
+    fecha:document.getElementById('mcons-fecha').value||_consHoy(),
+    propiedad, contacto:document.getElementById('mcons-contacto').value,
+    estado:document.getElementById('mcons-estado').value,
+    nota:document.getElementById('mcons-nota').value.trim()
+  };
+  if(_consEditIdx!==null && consultas[_consEditIdx]) consultas[_consEditIdx]={...consultas[_consEditIdx],...obj};
+  else consultas.push({...obj, recontacto:'', creada:new Date().toISOString()});
+  cerrarModalConsulta(); renderConsultas();
+}
+
+function abrirModalRecontacto(i){
+  _crearModalesConsultas();
+  const c=consultas[i]; if(!c) return;
+  _consRecIdx=i;
+  let fecha='', hora='10:00';
+  if(c.recontacto){ fecha=c.recontacto.slice(0,10); hora=c.recontacto.slice(11,16)||hora; }
+  else { const d=new Date(); d.setDate(d.getDate()+1); fecha=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  document.getElementById('mrec-nombre').textContent='Llamar a '+c.nombre+(c.telefono?' · '+c.telefono:'');
+  document.getElementById('mrec-fecha').value=fecha;
+  document.getElementById('mrec-hora').value=hora;
+  document.getElementById('mrec-nota').value=c.recontactoNota||'';
+  document.getElementById('mrec-quitar').style.display=c.recontacto?'inline-block':'none';
+  document.getElementById('modal-recontacto').classList.add('open');
+}
+function cerrarModalRecontacto(){ document.getElementById('modal-recontacto')?.classList.remove('open'); _consRecIdx=null; }
+function quitarRecontacto(){
+  const c=consultas[_consRecIdx]; if(!c) return;
+  c.recontacto=''; c.recontactoNota='';
+  cerrarModalRecontacto(); renderConsultas();
+}
+function guardarRecontacto(){
+  const c=consultas[_consRecIdx]; if(!c) return;
+  const fecha=document.getElementById('mrec-fecha').value;
+  const hora=document.getElementById('mrec-hora').value||'10:00';
+  const nota=document.getElementById('mrec-nota').value.trim();
+  if(!fecha){ alert('Elegí la fecha del recontacto.'); return; }
+  c.recontacto=fecha+'T'+hora; c.recontactoNota=nota;
+
+  const [y,mo,d]=fecha.split('-').map(Number), [hh,mm]=hora.split(':').map(Number);
+  const start=new Date(y,mo-1,d,hh,mm), end=new Date(start.getTime()+30*60000);
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=x=>`${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+  const det=[ c.telefono?'Tel: '+c.telefono:'', c.email?'Email: '+c.email:'', c.propiedad?'Propiedad consultada: '+c.propiedad:'',
+              c.fecha?'Consultó el '+c.fecha.split('-').reverse().join('/'):'', nota?'\n'+nota:'' ].filter(Boolean).join('\n');
+  const url=`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent('Llamar a '+c.nombre)}&dates=${fmt(start)}/${fmt(end)}&details=${encodeURIComponent(det)}&ctz=America/Argentina/Buenos_Aires`;
+  window.open(url,'_blank');
+  cerrarModalRecontacto(); renderConsultas();
 }
 </script>
 <script>
