@@ -4447,8 +4447,10 @@ function eliminarPerdido(i){
 // ══════════════════════════════════════════════════
 const CONS_CONTACTO = ['No contactado','Contactado'];
 const CONS_ESTADOS  = ['Pendiente','Activo','No califica','Perdido'];
+const CONS_ORIGENES = ['Web Remax','Portales','Pauta','Cartel','Referido','Otro'];
+const CONS_ORIGEN_COLOR = {'Web Remax':'background:#E6F1FB;color:#0C447C','Portales':'background:#EEEDFE;color:#3C3489','Pauta':'background:#FAEEDA;color:#633806','Cartel':'background:#FAECE7;color:#712B13','Referido':'background:#EAF3DE;color:#27500A','Otro':'background:#f0efe9;color:#555'};
 let _consEditIdx = null, _consRecIdx = null;
-window.consFiltro = {estado:'', contacto:'', q:''};
+window.consFiltro = {estado:'', contacto:'', origen:'', q:''};
 
 function _consHoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function _esc(t){ return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -4496,6 +4498,8 @@ function renderConsultas(){
       <option value="">Contactado y no contactado</option>${CONS_CONTACTO.map(x=>`<option ${f.contacto===x?'selected':''}>${x}</option>`).join('')}</select>
     <select onchange="window.consFiltro.estado=this.value;renderConsultasTabla()" style="${selSt}">
       <option value="">Todos los estados</option>${CONS_ESTADOS.map(x=>`<option ${f.estado===x?'selected':''}>${x}</option>`).join('')}</select>
+    <select onchange="window.consFiltro.origen=this.value;renderConsultasTabla()" style="${selSt}">
+      <option value="">Todos los orígenes</option>${CONS_ORIGENES.map(x=>`<option ${f.origen===x?'selected':''}>${x}</option>`).join('')}</select>
   </div>`;
   h+='<div id="consultas-tabla"></div>';
   el.innerHTML=h;
@@ -4508,14 +4512,15 @@ function renderConsultasTabla(){
   const filas=consultas.map((c,i)=>({c,i})).filter(({c})=>{
     if(f.estado && c.estado!==f.estado) return false;
     if(f.contacto && (c.contacto||'No contactado')!==f.contacto) return false;
-    if(q && ![c.nombre,c.telefono,c.email,c.propiedad].join(' ').toLowerCase().includes(q)) return false;
+    if(f.origen && c.origen!==f.origen) return false;
+    if(q && ![c.nombre,c.telefono,c.email,c.propiedad,c.origen].join(' ').toLowerCase().includes(q)) return false;
     return true;
   }).sort((a,b)=>(b.c.fecha||'').localeCompare(a.c.fecha||'') || b.i-a.i);
 
   const selSt='font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #e0dfd8;width:auto;min-width:104px';
   const estStyle={ 'Pendiente':'background:#FAEEDA;color:#633806','Activo':'background:#E1F5EE;color:#085041','No califica':'background:#f0efe9;color:#555','Perdido':'background:#FCEBEB;color:#791F1F' };
   let h=`<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:980px">
-    <thead><tr><th>Fecha</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Propiedad consultada</th><th>Contacto</th><th>Estado</th><th>Recontacto</th><th></th></tr></thead><tbody>`;
+    <thead><tr><th>Fecha</th><th>Nombre</th><th>Teléfono / Email</th><th>Origen</th><th>Propiedad consultada</th><th>Contacto</th><th>Estado</th><th>Recontacto</th><th></th></tr></thead><tbody>`;
   if(!filas.length){
     h+=`<tr><td colspan="9" style="padding:2.5rem;text-align:center;color:#aaa">${consultas.length?'Ninguna consulta coincide con el filtro.':'Todavía no cargaste consultas. Tocá "+ Nueva consulta".'}</td></tr>`;
   } else {
@@ -4531,8 +4536,8 @@ function renderConsultasTabla(){
       h+=`<tr>
         <td style="font-size:12px;color:#888;white-space:nowrap">${c.fecha?c.fecha.slice(8,10)+'/'+c.fecha.slice(5,7)+'/'+c.fecha.slice(2,4):'—'}</td>
         <td style="font-weight:500;font-size:13px">${_esc(c.nombre)||'—'}${c.nota?`<div style="font-size:11px;color:#aaa;font-weight:400">${_esc(c.nota)}</div>`:''}</td>
-        <td style="font-size:12px;white-space:nowrap">${c.telefono?`<a href="tel:${_esc(c.telefono.replace(/[^0-9+]/g,''))}" style="color:#185FA5;text-decoration:none">${_esc(c.telefono)}</a>`:'—'}</td>
-        <td style="font-size:12px">${c.email?`<a href="mailto:${_esc(c.email)}" style="color:#185FA5;text-decoration:none">${_esc(c.email)}</a>`:'—'}</td>
+        <td style="font-size:12px;white-space:nowrap">${c.telefono?`<a href="tel:${_esc(c.telefono.replace(/[^0-9+]/g,''))}" style="color:#185FA5;text-decoration:none">${_esc(c.telefono)}</a>`:'<span style="color:#ccc">—</span>'}${c.email?`<div><a href="mailto:${_esc(c.email)}" style="color:#185FA5;text-decoration:none;font-size:11px">${_esc(c.email)}</a></div>`:''}</td>
+        <td>${c.origen?`<span class="tag" style="${CONS_ORIGEN_COLOR[c.origen]||CONS_ORIGEN_COLOR['Otro']}">${_esc(c.origen)}</span>`:'<span style="color:#ccc;font-size:12px">—</span>'}</td>
         <td style="font-size:12px;color:#555">${_esc(c.propiedad)||'—'}</td>
         <td><select onchange="cambiarCampoConsulta(${i},'contacto',this.value)" style="${selSt};${cont==='Contactado'?'background:#EAF3DE;color:#3B6D11':'background:#FCEBEB;color:#A32D2D'}">
           ${CONS_CONTACTO.map(x=>`<option ${cont===x?'selected':''}>${x}</option>`).join('')}</select></td>
@@ -4568,8 +4573,11 @@ function _crearModalesConsultas(){
     <input type="tel" id="mcons-tel" placeholder="Ej: 221 555 1234"/>
     <label class="field-label">Email</label>
     <input type="email" id="mcons-email" placeholder="Ej: maria@mail.com"/>
-    <label class="field-label">Fecha de la consulta</label>
-    <input type="date" id="mcons-fecha"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="field-label">Fecha de la consulta</label><input type="date" id="mcons-fecha"/></div>
+      <div><label class="field-label">Origen <span class="req">*</span></label>
+        <select id="mcons-origen"><option value="">— Elegí —</option>${CONS_ORIGENES.map(x=>'<option>'+x+'</option>').join('')}</select></div>
+    </div>
     <label class="field-label">Propiedad consultada</label>
     <select id="mcons-prop" onchange="document.getElementById('mcons-prop-otra').style.display=this.value==='__otra'?'block':'none'"></select>
     <input type="text" id="mcons-prop-otra" placeholder="Escribí la propiedad o búsqueda" style="display:none;margin-top:6px"/>
@@ -4624,6 +4632,7 @@ function abrirModalConsulta(i){
   document.getElementById('mcons-tel').value=c?.telefono||'';
   document.getElementById('mcons-email').value=c?.email||'';
   document.getElementById('mcons-fecha').value=c?.fecha||_consHoy();
+  document.getElementById('mcons-origen').value=c?.origen||'';
   document.getElementById('mcons-contacto').value=c?.contacto||'No contactado';
   document.getElementById('mcons-estado').value=c?.estado||'Pendiente';
   document.getElementById('mcons-nota').value=c?.nota||'';
@@ -4635,13 +4644,15 @@ function cerrarModalConsulta(){ document.getElementById('modal-consulta')?.class
 function guardarConsulta(){
   const nombre=document.getElementById('mcons-nombre').value.trim();
   if(!nombre){ alert('Ingresá el nombre y apellido.'); return; }
+  const origen=document.getElementById('mcons-origen').value;
+  if(!origen){ alert('Elegí de dónde vino la consulta.'); return; }
   const sel=document.getElementById('mcons-prop').value;
   const propiedad= sel==='__otra' ? document.getElementById('mcons-prop-otra').value.trim() : sel;
   const obj={
     nombre, telefono:document.getElementById('mcons-tel').value.trim(),
     email:document.getElementById('mcons-email').value.trim(),
     fecha:document.getElementById('mcons-fecha').value||_consHoy(),
-    propiedad, contacto:document.getElementById('mcons-contacto').value,
+    propiedad, origen, contacto:document.getElementById('mcons-contacto').value,
     estado:document.getElementById('mcons-estado').value,
     nota:document.getElementById('mcons-nota').value.trim()
   };
@@ -4682,7 +4693,7 @@ function guardarRecontacto(){
   const start=new Date(y,mo-1,d,hh,mm), end=new Date(start.getTime()+30*60000);
   const pad=n=>String(n).padStart(2,'0');
   const fmt=x=>`${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
-  const det=[ c.telefono?'Tel: '+c.telefono:'', c.email?'Email: '+c.email:'', c.propiedad?'Propiedad consultada: '+c.propiedad:'',
+  const det=[ c.telefono?'Tel: '+c.telefono:'', c.email?'Email: '+c.email:'', c.propiedad?'Propiedad consultada: '+c.propiedad:'', c.origen?'Origen: '+c.origen:'',
               c.fecha?'Consultó el '+c.fecha.split('-').reverse().join('/'):'', nota?'\n'+nota:'' ].filter(Boolean).join('\n');
   const url=`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent('Llamar a '+c.nombre)}&dates=${fmt(start)}/${fmt(end)}&details=${encodeURIComponent(det)}&ctz=America/Argentina/Buenos_Aires`;
   window.open(url,'_blank');
