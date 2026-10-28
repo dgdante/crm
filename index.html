@@ -133,6 +133,8 @@ var carteraProps = [];
 var carteraPLs = [];
 var potencialesPL = [];
 var potencialesPB = [];
+var compradoresPerdidos = [];
+var compradoresReferidos = [];
 var propiedadesVendidas = [];
 var compradoresProsp = [];
 var compradorePBs = [];
@@ -182,7 +184,7 @@ async function saveToSheets(opts){
   const allData = {
     tiers: tiersToSave, opps, oppCounters,
     carteraProps, carteraPLs, potencialesPL, propiedadesVendidas, potencialesPB,
-    compradoresProsp, compradorePBs, compradoresVendidos,
+    compradoresProsp, compradorePBs, compradoresVendidos, compradoresPerdidos, compradoresReferidos,
     reservas, objetivosMes, gastos, trkData: trkToSave,
     touches: touchesToSave
   };
@@ -288,6 +290,8 @@ async function loadFromSheets(retryCount=0) {
         if(d.compradoresProsp)  compradoresProsp=d.compradoresProsp;
         if(d.compradorePBs)     compradorePBs=d.compradorePBs;
         if(d.compradoresVendidos) compradoresVendidos=d.compradoresVendidos;
+        if(d.compradoresPerdidos) compradoresPerdidos=d.compradoresPerdidos;
+        if(d.compradoresReferidos) compradoresReferidos=d.compradoresReferidos;
         if(d.reservas)          reservas=d.reservas;
         if(d.objetivosMes)      objetivosMes=d.objetivosMes;
         if(d.gastos)            gastos=d.gastos;
@@ -2933,12 +2937,16 @@ function guardarReserva(){
     setTimeout(()=>window.open(urlRegalo,'_blank'), 500);
   }
 
+  try{ syncCompradorDesdeReserva(isNew ? reservas[reservas.length-1] : reservas[danteReservaEditIdx], prevEstado); }catch(e){ console.warn('sync comprador', e); }
+
   cerrarModalReserva();
   renderDante();
 }
 
 function cambiarEstadoReserva(i,val){
+  const prev = reservas[i].estado;
   reservas[i].estado=val;
+  try{ syncCompradorDesdeReserva(reservas[i], prev); }catch(e){ console.warn('sync comprador', e); }
   renderDante();
 }
 
@@ -3758,6 +3766,77 @@ const BUSQUEDA_TIPOS = ['Departamento','Casa','PH','Local comercial','Oficina','
 const PB_ESTADOS = ['Pendiente','En búsqueda','Operación cerrada','Postergado','Perdido'];
 window.compradorFiltroActivo = 'total';
 
+// ── Helpers de movimiento entre listas (no tocan el Trackeo Semanal) ──
+function _normNom(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
+function _hoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _esActivo(p){ return p.estado==='activo' || p.estado==='postergado'; }
+
+function quitarDePotencialesPB(nombre){
+  const n=_normNom(nombre); if(!n) return;
+  potencialesPB = potencialesPB.filter(p=>_normNom(p.contactName)!==n);
+}
+function pasarAPerdidos(entry){
+  if(!Array.isArray(compradoresPerdidos)) compradoresPerdidos=[];
+  compradoresPerdidos.push({
+    nombre: entry.nombre||'', tipo: entry.tipo||'', busqueda: entry.busqueda||'',
+    presupuesto: entry.presupuesto||'', nota: entry.nota||'', origen: entry.origen||'',
+    trackingNum: entry.trackingNum||'', contactId: entry.contactId||'',
+    fechaPerdido: entry.fechaPerdido!==undefined ? entry.fechaPerdido : _hoy()
+  });
+}
+
+// Ordena datos viejos: perdidos que quedaron escondidos y potenciales que ya son activos
+function ordenarListasCompradores(){
+  if(!Array.isArray(compradoresPerdidos)) compradoresPerdidos=[];
+  for(let i=compradoresProsp.length-1;i>=0;i--){
+    if(String(compradoresProsp[i].estado).toLowerCase()==='perdido'){
+      const p=compradoresProsp.splice(i,1)[0];
+      pasarAPerdidos({...p, origen:'Comprador activo', fechaPerdido:''});
+    }
+  }
+  compradorePBs.forEach(pb=>{
+    if(pb.estado==='Perdido' && !pb._movido){
+      pb._movido=true;
+      pasarAPerdidos({nombre:pb.contactName, tipo:pb.tipo, busqueda:pb.busqueda, presupuesto:pb.presupuesto, nota:pb.nota, origen:'PreBuying', trackingNum:pb.trackingNum, fechaPerdido:''});
+    }
+  });
+  const activosN = new Set(compradoresProsp.filter(_esActivo).map(p=>_normNom(p.nombre)));
+  potencialesPB = potencialesPB.filter(p=>!activosN.has(_normNom(p.contactName)));
+}
+
+// Facturación → Compradores (solo punta compradora)
+function syncCompradorDesdeReserva(r, prevEstado){
+  if(!r || r.punta!=='Compradora' || !r.cliente) return;
+  const nom=r.cliente, n=_normNom(nom);
+
+  if(r.estado==='Caída' && prevEstado!=='Caída'){
+    if(!r.fechaCaida) r.fechaCaida=_hoy();
+    // El comprador sigue vivo: si no está en activos ni en potenciales, va a potenciales
+    const enActivos = compradoresProsp.some(p=>_normNom(p.nombre)===n && _esActivo(p));
+    const enPot = potencialesPB.some(p=>_normNom(p.contactName)===n);
+    if(!enActivos && !enPot){
+      potencialesPB.push({contactName:nom, contactId:r._contactId||'', fecha:_hoy(), nota:'Oferta caída'+(r.direccion?' · '+r.direccion:'')});
+    }
+  }
+
+  if(r.estado==='Cerrada' && prevEstado!=='Cerrada'){
+    const fc = r.fechaCierre || _hoy();
+    const prosp = compradoresProsp.find(p=>_normNom(p.nombre)===n && _esActivo(p));
+    const ya = (compradoresVendidos||[]).some(c=>_normNom(c.nombre)===n && c.fechaCierre===fc);
+    if(!compradoresVendidos) compradoresVendidos=[];
+    if(!ya){
+      compradoresVendidos.push({
+        nombre:nom, busqueda:r.direccion||prosp?.busqueda||'',
+        presupuesto:prosp?.presupuesto||r.oferta||'', fechaCierre:fc,
+        nota:prosp?.nota||'', origen:'Facturación'
+      });
+    }
+    compradoresProsp = compradoresProsp.filter(p=>!(_normNom(p.nombre)===n && _esActivo(p)));
+    quitarDePotencialesPB(nom);
+    compradorePBs.forEach(pb=>{ if(_normNom(pb.contactName)===n && !pb._movido) pb._movido=true; });
+  }
+}
+
 function renderCompradores(){
   const el = document.getElementById('compradores-view');
   if(!el) return;
@@ -3776,7 +3855,10 @@ function renderCompradores(){
     });
   }
 
+  ordenarListasCompradores();
+
   const activos = compradoresProsp.filter(p=>p.estado==='activo');
+  const visibles = compradoresProsp.filter(_esActivo); // activos + postergados
   const avgPresupuesto = activos.length&&activos.some(p=>p.presupuesto)?
     Math.round(activos.filter(p=>p.presupuesto).reduce((s,p)=>s+Number(p.presupuesto),0)/activos.filter(p=>p.presupuesto).length):0;
   const enBusqueda = compradorePBs.filter(p=>p.estado===PB_ESTADOS[1]);
@@ -3819,10 +3901,10 @@ function renderCompradores(){
       <th>Nombre</th><th>Tipo buscado</th><th>Zona / búsqueda</th><th>Presupuesto (USD)</th><th>Estado</th><th>Días activo</th><th>Acciones</th>
     </tr></thead><tbody>`;
 
-  if(!activos.length){
-    h += '<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Aún no hay compradores activos. Hacé clic en "+ Agregar comprador".</td></tr>';
+  if(!visibles.length){
+    h += '<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Aún no hay compradores activos.</td></tr>';
   } else {
-    activos.forEach(p=>{
+    visibles.forEach(p=>{
       const idx = compradoresProsp.indexOf(p);
       const diasActivo = p.fechaIngreso ? Math.floor((new Date()-new Date(p.fechaIngreso))/86400000) : '—';
       const diasColor = typeof diasActivo==='number'&&diasActivo>60?'#A32D2D':typeof diasActivo==='number'&&diasActivo>30?'#854F0B':'#1a1a1a';
@@ -3838,7 +3920,7 @@ function renderCompradores(){
           <option value="perdido" ${p.estado==='perdido'?'selected':''}>Perdido</option>
         </select></td>
         <td style="color:${diasColor};font-size:12px">${typeof diasActivo==='number'?diasActivo+'d':diasActivo}</td>
-        <td><button onclick="abrirModalComprador(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">Editar</button><button onclick="eliminarActivo(${idx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button></td>
+        <td style="white-space:nowrap"><button onclick="abrirModalComprador(${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">Editar</button><button onclick="abrirModalReferir('activo',${idx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">→ Referir</button><button onclick="eliminarActivo(${idx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button></td>
       </tr>`;
     });
   }
@@ -3849,15 +3931,15 @@ function renderCompradores(){
     <div style="font-size:15px;font-weight:500">Pipeline de PreBuyings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${compradorePBs.length} registrados</span></div>
 
   </div>
-  <div class="table-wrap"><table>
+  <div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:960px">
     <thead><tr>
-      <th style="width:13%">N° Trackeo</th><th style="width:17%">Contacto</th>
-      <th style="width:20%">Búsqueda / zona</th><th style="width:10%">Tipo</th>
-      <th style="width:12%">Estado</th><th style="width:11%">Ingreso</th><th style="width:17%">Nota</th>
+      <th>N° Trackeo</th><th>Contacto</th>
+      <th>Búsqueda / zona</th><th>Presupuesto</th>
+      <th>Estado</th><th>Ingreso</th><th>Nota</th><th>Acciones</th>
     </tr></thead><tbody>`;
 
   if(!compradorePBs.length){
-    h += '<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreBuyings aún. Se sincronizan automáticamente desde los toques con resultado PB.</td></tr>';
+    h += '<tr><td colspan="8" style="padding:3rem;text-align:center;color:#aaa">Sin PreBuyings aún. Se sincronizan automáticamente desde los toques con resultado PB.</td></tr>';
   } else {
     compradorePBs.filter(pb=>!pb._movido).forEach((pb,i)=>{ const realIdx=compradorePBs.indexOf(pb);
       const di = pb.fecha ? Math.floor((new Date()-new Date(pb.fecha))/86400000) : '—';
@@ -3872,47 +3954,69 @@ function renderCompradores(){
         </select></td>
         <td style="font-size:12px;color:#888">${pb.fecha?pb.fecha.slice(5).replace('-','/'):'—'}${typeof di==='number'?' ('+di+'d)':''}</td>
         <td style="font-size:12px;color:#888">${pb.nota||'—'}</td>
-        <td>
+        <td style="white-space:nowrap">
           <button onclick="editarPB(${realIdx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">Editar</button>
+          <button onclick="abrirModalReferir('pb',${realIdx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">→ Referir</button>
           <button onclick="eliminarPB(${realIdx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button>
         </td>
       </tr>`;
     });
   }
-  h += '</tbody></table></div>';
+  h += '</tbody></table></div></div>';
 
-  // ── Registro de reservas caídas (compradora) ──
+  // ── Registro de reservas caídas (punta compradora, se alimenta de Facturación) ──
   const reservasCaidasComp = typeof reservas!=='undefined'
-    ? reservas.filter(r=>r.estado==='Caída')
+    ? reservas.filter(r=>r.estado==='Caída' && r.punta==='Compradora')
     : [];
-
-  if(reservasCaidasComp.length > 0){
-    h += `<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Registro de reservas caídas
-      <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${reservasCaidasComp.length} reserva${reservasCaidasComp.length!==1?'s':''}</span>
-    </div>`;
-    h += `<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:600px">
-      <thead><tr>
-        <th>Cliente</th>
-        <th>Punta</th>
-        <th>Búsqueda / dirección</th>
-        <th>Comisión</th>
-        <th>Mes de toma</th>
-        <th>Nota</th>
-      </tr></thead><tbody>`;
+  h += `<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Registro de reservas caídas
+    <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${reservasCaidasComp.length} reserva${reservasCaidasComp.length!==1?'s':''}</span>
+  </div>`;
+  h += `<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:600px">
+    <thead><tr>
+      <th>Cliente</th><th>Dirección</th><th>Oferta</th><th>Comisión</th><th>Mes de toma</th><th>Fecha caída</th>
+    </tr></thead><tbody>`;
+  if(!reservasCaidasComp.length){
+    h += '<tr><td colspan="6" style="padding:1.5rem;text-align:center;color:#aaa">Cuando marques una reserva compradora como "Caída" en Facturación, aparece acá.</td></tr>';
+  } else {
     reservasCaidasComp.slice().reverse().forEach(r=>{
-      const puntaColor = r.punta==='Compradora'?'#085041':'#534AB7';
-      const puntaBg = r.punta==='Compradora'?'#E1F5EE':'#EEEDFE';
       h += `<tr>
         <td style="font-weight:500;font-size:12px">${r.cliente||'—'}</td>
-        <td><span style="font-size:11px;font-weight:600;background:${puntaBg};color:${puntaColor};padding:2px 8px;border-radius:10px">${r.punta||'—'}</span></td>
         <td style="font-size:12px;color:#888">${r.direccion||r.codigo||'—'}</td>
+        <td style="font-size:12px;color:#888">${r.oferta?'$'+Number(r.oferta).toLocaleString('es-AR'):'—'}</td>
         <td style="font-size:12px;color:#A32D2D">${r.comision?'$'+Number(r.comision).toLocaleString('es-AR'):'—'}</td>
         <td style="font-size:12px;color:#888">${r.mesToma||'—'}</td>
-        <td style="font-size:12px;color:#aaa">${r.nota||'—'}</td>
+        <td style="font-size:12px;color:#888">${r.fechaCaida||'—'}</td>
       </tr>`;
     });
-    h += '</tbody></table></div></div>';
   }
+  h += '</tbody></table></div></div>';
+
+  // ── Compradores perdidos ──
+  h += `<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Compradores perdidos
+    <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${compradoresPerdidos.length} comprador${compradoresPerdidos.length!==1?'es':''}</span>
+  </div>`;
+  h += `<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:600px">
+    <thead><tr><th>Cliente</th><th>Venía de</th><th>Búsqueda</th><th>Presupuesto</th><th>Fecha</th><th>Nota</th><th></th></tr></thead><tbody>`;
+  if(!compradoresPerdidos.length){
+    h += '<tr><td colspan="7" style="padding:1.5rem;text-align:center;color:#aaa">Sin compradores perdidos.</td></tr>';
+  } else {
+    compradoresPerdidos.slice().reverse().forEach((c,k)=>{
+      const realIdx = compradoresPerdidos.length-1-k;
+      h += `<tr>
+        <td style="font-weight:500;font-size:12px">${c.nombre||'—'}</td>
+        <td style="font-size:11px;color:#888">${c.origen||'—'}${c.trackingNum?' · '+c.trackingNum:''}</td>
+        <td style="font-size:12px;color:#888">${c.busqueda||'—'}</td>
+        <td style="font-size:12px;color:#888">${c.presupuesto?'$'+Number(c.presupuesto).toLocaleString('es-AR'):'—'}</td>
+        <td style="font-size:12px;color:#888">${c.fechaPerdido||'—'}</td>
+        <td style="font-size:12px;color:#aaa">${c.nota||'—'}</td>
+        <td style="white-space:nowrap">
+          <button onclick="reactivarPerdido(${realIdx})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">↩ Reactivar</button>
+          <button onclick="eliminarPerdido(${realIdx})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button>
+        </td>
+      </tr>`;
+    });
+  }
+  h += '</tbody></table></div></div>';
 
   // ── Registro de Potenciales Compradores ──
   if(potencialesPB.length > 0){
@@ -3923,11 +4027,71 @@ function renderCompradores(){
       h += '<td style="font-weight:500;font-size:12px">'+(p.contactName||'—')+'</td>';
       h += '<td style="font-size:12px;color:#888">'+(p.fecha||'—')+'</td>';
       h += '<td style="font-size:12px;color:#aaa">'+(p.nota||'—')+'</td>';
-      h += '<td><button onclick="eliminarPotencialPB('+i+')" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">Eliminar</button></td>';
+      h += '<td style="white-space:nowrap">'
+        + '<button onclick="potencialAActivo('+i+')" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">→ Activo</button>'
+        + '<button onclick="potencialAPerdido('+i+')" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">→ Perdido</button>'
+        + '<button onclick="abrirModalReferir(\'pot\','+i+')" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">→ Referir</button>'
+        + '<button onclick="eliminarPotencialPB('+i+')" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">Eliminar</button>'
+        + '</td>';
       h += '</tr>';
     });
     h += '</tbody></table></div></div>';
   }
+
+  // ── Compradores referidos a Yoyi / Hernán ──
+  if(!Array.isArray(compradoresReferidos)) compradoresReferidos=[];
+  const refRes = AGENTES_REF.map(a=>{
+    const del = compradoresReferidos.filter(r=>r.agente===a);
+    const cerr = del.filter(r=>r.estado==='Cerrado');
+    return {a, total:del.length, busq:del.filter(r=>r.estado==='En búsqueda').length, cerr:cerr.length,
+            fact:cerr.reduce((s,r)=>s+(Number(r.facturacion)||0),0)};
+  });
+  const factRefTotal = refRes.reduce((s,x)=>s+x.fact,0);
+  h += `<div style="font-size:15px;font-weight:500;margin:1.5rem 0 8px">Compradores referidos
+    <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${compradoresReferidos.length} referido${compradoresReferidos.length!==1?'s':''}</span>
+  </div>`;
+  h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:10px">
+    ${refRes.map(x=>`<div class="stat-card">
+      <div class="stat-label">Facturación referidos · ${x.a}</div>
+      <div class="stat-val" style="font-size:18px;color:#3B6D11">${'$'+x.fact.toLocaleString('es-AR')}</div>
+      <div class="stat-sub">${x.cerr} cerrado${x.cerr!==1?'s':''} · ${x.busq} en búsqueda · ${x.total} referido${x.total!==1?'s':''}</div>
+    </div>`).join('')}
+    <div class="stat-card"><div class="stat-label">Total referidos cerrados</div>
+      <div class="stat-val" style="font-size:18px;color:#3B6D11">${'$'+factRefTotal.toLocaleString('es-AR')}</div>
+      <div class="stat-sub">Yoyi + Hernán</div></div>
+  </div>`;
+  h += `<div class="table-wrap" style="margin-bottom:1.5rem"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:860px">
+    <thead><tr><th>Cliente</th><th>Referido a</th><th>Búsqueda</th><th>Presupuesto</th><th>Fecha</th><th>Estado</th><th>Cierre</th><th>Nota</th><th></th></tr></thead><tbody>`;
+  if(!compradoresReferidos.length){
+    h += '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:#aaa">Usá "→ Referir" en un comprador activo, un PreBuying o un potencial para derivárselo a Yoyi o Hernán.</td></tr>';
+  } else {
+    compradoresReferidos.slice().reverse().forEach((r,k)=>{
+      const ri = compradoresReferidos.length-1-k;
+      const est = REF_ESTADOS.includes(r.estado)?r.estado:'En búsqueda';
+      const estStyle = est==='Cerrado'?'background:#EAF3DE;color:#3B6D11':est==='Caído'?'background:#FCEBEB;color:#791F1F':'background:#EEEDFE;color:#534AB7';
+      h += `<tr>
+        <td style="font-weight:500;font-size:12px">${r.nombre||'—'}</td>
+        <td><select onchange="cambiarAgenteReferido(${ri},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+          ${AGENTES_REF.map(a=>`<option ${r.agente===a?'selected':''}>${a}</option>`).join('')}</select></td>
+        <td style="font-size:12px;color:#888">${r.busqueda||'—'}</td>
+        <td style="font-size:12px;color:#888">${r.presupuesto?'$'+Number(r.presupuesto).toLocaleString('es-AR'):'—'}</td>
+        <td style="font-size:12px;color:#888">${r.fechaReferido||'—'}${r.fechaCierre?'<br><span style="color:#3B6D11">cierre '+r.fechaCierre+'</span>':''}</td>
+        <td><select onchange="cambiarEstadoReferido(${ri},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8;${estStyle}">
+          ${REF_ESTADOS.map(e=>`<option ${est===e?'selected':''}>${e}</option>`).join('')}</select></td>
+        <td style="font-size:12px;white-space:nowrap">${est==='Cerrado'
+          ? `<div>Precio: ${r.precioCierre?'$'+Number(r.precioCierre).toLocaleString('es-AR'):'—'}</div>
+             <div style="color:#3B6D11;font-weight:500">Comisión: ${r.facturacion?'$'+Number(r.facturacion).toLocaleString('es-AR'):'—'}
+             <button onclick="abrirModalCierreReferido(${ri})" title="Editar cierre" style="font-size:11px;padding:1px 6px;margin-left:4px;border:1px solid #e0dfd8;background:#fff;border-radius:6px;cursor:pointer">✎</button></div>`
+          : '<span style="color:#ccc">—</span>'}</td>
+        <td style="font-size:12px;color:#aaa">${r.nota||'—'}</td>
+        <td style="white-space:nowrap">
+          <button onclick="devolverReferido(${ri})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px" title="Volver a Compradores activos">↩</button>
+          <button onclick="eliminarReferido(${ri})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button>
+        </td>
+      </tr>`;
+    });
+  }
+  h += '</tbody></table></div></div>';
 
   // ── Registro de Compradores cerrados ──
   if(compradoresVendidos && compradoresVendidos.length > 0){
@@ -4027,13 +4191,20 @@ function guardarComprador(){
   };
   if(_compEditIdx!==null) compradoresProsp[_compEditIdx]={...compradoresProsp[_compEditIdx],...obj};
   else compradoresProsp.push(obj);
+  quitarDePotencialesPB(nombre);
   cerrarModalComprador(); renderCompradores();
 }
 
 function cambiarEstadoComprador(idx, val){
+  const p = compradoresProsp[idx];
+  if(!p) return;
   if(val==='cerrado'){
-    compradoresVendidos.push({...compradoresProsp[idx], estadoFinal:'cerrado', fechaCierre:new Date().toISOString().split('T')[0]});
+    compradoresVendidos.push({...p, estadoFinal:'cerrado', fechaCierre:_hoy()});
     compradoresProsp.splice(idx,1);
+    quitarDePotencialesPB(p.nombre);
+  } else if(val==='perdido'){
+    compradoresProsp.splice(idx,1);
+    pasarAPerdidos({...p, origen:'Comprador activo'});
   } else {
     compradoresProsp[idx].estado=val;
   }
@@ -4072,19 +4243,191 @@ function cambiarEstadoPB(i, val){
       nota: pb.nota||''
     });
     compradorePBs[i]._movido = true; // mark as moved
+    quitarDePotencialesPB(pb.contactName||pb.nombre);
   } else if(val === PB_ESTADOS[2]){ // "Operación cerrada" → pasar a cerrados
     if(!compradoresVendidos) compradoresVendidos=[];
     compradoresVendidos.push({
       nombre: pb.contactName||pb.nombre||'',
       busqueda: pb.busqueda||pb.property||'',
       presupuesto: pb.presupuesto||'',
-      fechaCierre: new Date().toISOString().split('T')[0],
+      fechaCierre: _hoy(),
       nota: pb.nota||''
     });
     compradorePBs[i]._movido = true; // mark as moved
+    quitarDePotencialesPB(pb.contactName||pb.nombre);
+  } else if(val === 'Perdido'){
+    compradorePBs[i].estado = 'Perdido';
+    compradorePBs[i]._movido = true;
+    pasarAPerdidos({nombre:pb.contactName||pb.nombre, tipo:pb.tipo, busqueda:pb.busqueda, presupuesto:pb.presupuesto, nota:pb.nota, origen:'PreBuying', trackingNum:pb.trackingNum});
   } else {
     compradorePBs[i].estado = val;
   }
+  renderCompradores();
+}
+
+// ── Referidos a Yoyi / Hernán ──
+const AGENTES_REF = ['Yoyi','Hernán'];
+const REF_ESTADOS = ['En búsqueda','Cerrado','Caído'];
+let _refPendiente = null;
+
+function abrirModalReferir(origen, idx){
+  let nombre='';
+  if(origen==='activo') nombre=compradoresProsp[idx]?.nombre;
+  else if(origen==='pb') nombre=compradorePBs[idx]?.contactName;
+  else if(origen==='pot') nombre=potencialesPB[idx]?.contactName;
+  if(!nombre) return;
+  _refPendiente = {origen, idx};
+  let m = document.getElementById('modal-referir');
+  if(!m){
+    m = document.createElement('div');
+    m.className='overlay'; m.id='modal-referir';
+    m.innerHTML=`<div class="modal" style="max-width:380px">
+      <h3>Referir comprador</h3>
+      <div id="mref-nombre" style="font-size:13px;color:#555;margin-bottom:10px"></div>
+      <label class="field-label">Se lo referís a <span class="req">*</span></label>
+      <select id="mref-agente">${AGENTES_REF.map(a=>'<option>'+a+'</option>').join('')}</select>
+      <label class="field-label">Nota</label>
+      <input type="text" id="mref-nota" placeholder="Opcional"/>
+      <div class="modal-btns">
+        <button class="btn-sec" onclick="cerrarModalReferir()">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarReferir()">Referir</button>
+      </div></div>`;
+    m.addEventListener('click',e=>{if(e.target===m)cerrarModalReferir();});
+    document.body.appendChild(m);
+  }
+  document.getElementById('mref-nombre').textContent = nombre;
+  document.getElementById('mref-nota').value = '';
+  m.classList.add('open');
+}
+function cerrarModalReferir(){ const m=document.getElementById('modal-referir'); if(m) m.classList.remove('open'); _refPendiente=null; }
+
+function confirmarReferir(){
+  if(!_refPendiente) return;
+  const {origen, idx} = _refPendiente;
+  const agente = document.getElementById('mref-agente').value;
+  const notaNueva = document.getElementById('mref-nota').value.trim();
+  let base = null;
+  if(origen==='activo'){
+    const p = compradoresProsp[idx]; if(!p) return;
+    compradoresProsp.splice(idx,1);
+    base = {nombre:p.nombre, tipo:p.tipo, busqueda:p.busqueda, presupuesto:p.presupuesto, nota:p.nota, origen:'Comprador activo'};
+  } else if(origen==='pb'){
+    const pb = compradorePBs[idx]; if(!pb) return;
+    pb._movido = true;
+    base = {nombre:pb.contactName, tipo:pb.tipo, busqueda:pb.busqueda, presupuesto:pb.presupuesto, nota:pb.nota, origen:'PreBuying', trackingNum:pb.trackingNum};
+  } else if(origen==='pot'){
+    const p = potencialesPB[idx]; if(!p) return;
+    potencialesPB.splice(idx,1);
+    base = {nombre:p.contactName, nota:p.nota, contactId:p.contactId, origen:'Potencial comprador'};
+  }
+  if(!base) return;
+  if(!Array.isArray(compradoresReferidos)) compradoresReferidos=[];
+  compradoresReferidos.push({
+    nombre:base.nombre||'', tipo:base.tipo||'', busqueda:base.busqueda||'', presupuesto:base.presupuesto||'',
+    nota: notaNueva || base.nota || '', origen:base.origen, trackingNum:base.trackingNum||'', contactId:base.contactId||'',
+    agente, estado:'En búsqueda', fechaReferido:_hoy(), fechaCierre:'', facturacion:''
+  });
+  quitarDePotencialesPB(base.nombre);
+  cerrarModalReferir();
+  renderCompradores();
+}
+function cambiarAgenteReferido(i, val){ if(compradoresReferidos[i]){ compradoresReferidos[i].agente=val; renderCompradores(); } }
+function cambiarEstadoReferido(i, val){
+  const r = compradoresReferidos[i]; if(!r) return;
+  if(val==='Cerrado'){ abrirModalCierreReferido(i); return; } // se confirma en el pop up
+  r.estado = val;
+  r.fechaCierre='';
+  renderCompradores();
+}
+
+let _refCierreIdx = null;
+function abrirModalCierreReferido(i){
+  const r = compradoresReferidos[i]; if(!r) return;
+  _refCierreIdx = i;
+  let m = document.getElementById('modal-cierre-ref');
+  if(!m){
+    m = document.createElement('div');
+    m.className='overlay'; m.id='modal-cierre-ref';
+    m.innerHTML=`<div class="modal" style="max-width:380px">
+      <h3>Cierre de referido</h3>
+      <div id="mcr-nombre" style="font-size:13px;color:#555;margin-bottom:10px"></div>
+      <label class="field-label">Precio de cierre (USD) <span class="req">*</span></label>
+      <input type="number" id="mcr-precio" placeholder="Ej: 120000"/>
+      <label class="field-label">Comisión generada (USD) <span class="req">*</span></label>
+      <input type="number" id="mcr-comision" placeholder="Ej: 3600"/>
+      <label class="field-label">Fecha de cierre</label>
+      <input type="date" id="mcr-fecha"/>
+      <div class="modal-btns">
+        <button class="btn-sec" onclick="cerrarModalCierreReferido()">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarCierreReferido()">Guardar cierre</button>
+      </div></div>`;
+    m.addEventListener('click',e=>{if(e.target===m)cerrarModalCierreReferido();});
+    document.body.appendChild(m);
+  }
+  document.getElementById('mcr-nombre').textContent = r.nombre+' · referido a '+r.agente;
+  document.getElementById('mcr-precio').value = r.precioCierre||'';
+  document.getElementById('mcr-comision').value = r.facturacion||'';
+  document.getElementById('mcr-fecha').value = r.fechaCierre||_hoy();
+  m.classList.add('open');
+  setTimeout(()=>document.getElementById('mcr-precio').focus(),50);
+}
+function cerrarModalCierreReferido(){
+  const m=document.getElementById('modal-cierre-ref'); if(m) m.classList.remove('open');
+  _refCierreIdx=null;
+  renderCompradores(); // si canceló, el selector vuelve a su estado anterior
+}
+function confirmarCierreReferido(){
+  const r = compradoresReferidos[_refCierreIdx]; if(!r) return;
+  const precio = Number(document.getElementById('mcr-precio').value)||0;
+  const comision = Number(document.getElementById('mcr-comision').value)||0;
+  if(!precio || !comision){ alert('Completá el precio de cierre y la comisión generada.'); return; }
+  r.estado='Cerrado';
+  r.precioCierre=precio;
+  r.facturacion=comision;
+  r.fechaCierre=document.getElementById('mcr-fecha').value||_hoy();
+  cerrarModalCierreReferido();
+}
+function setFacturacionReferido(i, val){
+  const r = compradoresReferidos[i]; if(!r) return;
+  r.facturacion = val==='' ? '' : (Number(val)||0);
+  renderCompradores();
+}
+function devolverReferido(i){
+  const r = compradoresReferidos[i]; if(!r) return;
+  if(!confirm('¿Sacar a '+r.nombre+' de referidos y volverlo a Compradores activos?')) return;
+  compradoresReferidos.splice(i,1);
+  compradoresProsp.push({nombre:r.nombre, tipo:r.tipo||'', busqueda:r.busqueda||'', presupuesto:r.presupuesto||'', estado:'activo', fechaIngreso:_hoy(), nota:r.nota||''});
+  renderCompradores();
+}
+function eliminarReferido(i){
+  if(!confirm('¿Eliminar este referido?')) return;
+  compradoresReferidos.splice(i,1);
+  renderCompradores();
+}
+
+function potencialAActivo(i){
+  const p = potencialesPB[i]; if(!p) return;
+  potencialesPB.splice(i,1);
+  compradoresProsp.push({nombre:p.contactName||'', tipo:'', busqueda:'', presupuesto:'', estado:'activo', fechaIngreso:_hoy(), nota:p.nota||''});
+  renderCompradores();
+}
+function potencialAPerdido(i){
+  const p = potencialesPB[i]; if(!p) return;
+  if(!confirm('¿Pasar a '+(p.contactName||'este contacto')+' a Compradores perdidos?')) return;
+  potencialesPB.splice(i,1);
+  pasarAPerdidos({nombre:p.contactName, nota:p.nota, contactId:p.contactId, origen:'Potencial comprador'});
+  renderCompradores();
+}
+function reactivarPerdido(i){
+  const c = compradoresPerdidos[i]; if(!c) return;
+  compradoresPerdidos.splice(i,1);
+  compradoresProsp.push({nombre:c.nombre, tipo:c.tipo||'', busqueda:c.busqueda||'', presupuesto:c.presupuesto||'', estado:'activo', fechaIngreso:_hoy(), nota:c.nota||''});
+  quitarDePotencialesPB(c.nombre);
+  renderCompradores();
+}
+function eliminarPerdido(i){
+  if(!confirm('¿Eliminar este comprador perdido?')) return;
+  compradoresPerdidos.splice(i,1);
   renderCompradores();
 }
 </script>
