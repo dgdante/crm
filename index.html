@@ -1757,22 +1757,25 @@ function renderCartera(){
   h+='</tbody></table></div></div>';
 
   // ── Pipeline PreListings ──
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-  h+=`<div style="font-size:15px;font-weight:500">Pipeline de PreListings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${carteraPLs.length} registrados</span></div>`;
+  const plVisibles = carteraPLs.filter(pl=>!pl._captado && pl.estado!=='Captada' && pl.estado!=='Perdida');
+  const plPerdidos = carteraPLs.filter(pl=>!pl._captado && pl.estado==='Perdida');
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">';
+  h+=`<div style="font-size:15px;font-weight:500">Pipeline de PreListings <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${plVisibles.length} en curso</span></div>`;
+  h+=`<button onclick="toggleVerPLPerdidos()" class="btn-sec" style="font-size:12px;padding:5px 12px">${window.verPLPerdidos?'Ocultar':'Ver'} prelistings perdidos (${plPerdidos.length})</button>`;
   h+='</div>';
-  h+='<div class="table-wrap"><table><thead><tr><th style="width:13%">N° Trackeo</th><th style="width:17%">Contacto</th><th style="width:22%">Dirección</th><th style="width:10%">Tipo</th><th style="width:12%">Estado</th><th style="width:11%">Ingreso</th><th>Nota</th></tr></thead><tbody>';
+  h+='<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:860px"><thead><tr><th>N° Trackeo</th><th>Contacto</th><th>Dirección</th><th>Tipo</th><th>Estado</th><th>Ingreso</th><th>Nota</th><th></th></tr></thead><tbody>';
 
-  if(!carteraPLs.length){
-    h+='<tr><td colspan="7" style="padding:3rem;text-align:center;color:#aaa">Sin PreListings aún. Se sincronizan automáticamente desde los toques con resultado PL.</td></tr>';
+  if(!plVisibles.length){
+    h+='<tr><td colspan="8" style="padding:3rem;text-align:center;color:#aaa">Sin PreListings en curso. Se sincronizan automáticamente desde los toques con resultado PL.</td></tr>';
   } else {
-    carteraPLs.filter(pl=>!pl._captado && pl.estado!=='Captada').forEach((pl,i)=>{ const realPLIdx=carteraPLs.indexOf(pl);
+    plVisibles.forEach(pl=>{ const realPLIdx=carteraPLs.indexOf(pl);
       const di=daysSinceDate(pl.fecha);
       h+=`<tr>
         <td><span class="tracking-num">${pl.trackingNum||'—'}</span></td>
         <td>${pl.contactName||'—'}</td>
         <td style="font-size:12px;color:#888">${pl.direccion||'—'}</td>
         <td><span class="tag tag-otro" style="font-size:11px">${pl.tipo||'—'}</span></td>
-        <td><select onchange="cambiarEstadoPL(${realPLIdx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8">
+        <td><select onchange="cambiarEstadoPL(${realPLIdx},this.value)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid #e0dfd8;width:auto">
           ${['Pendiente','Captada','Postergada','Perdida'].map(e=>`<option value="${e}" ${pl.estado===e?'selected':''}>${e}</option>`).join('')}
         </select></td>
         <td style="font-size:12px;color:#888">${pl.fecha?pl.fecha.slice(5).replace('-','/'):'—'}${di!==null?' ('+di+'d)':''}</td>
@@ -1781,7 +1784,39 @@ function renderCartera(){
       </tr>`;
     });
   }
-  h+='</tbody></table></div>';
+  h+='</tbody></table></div></div>';
+
+  // ── PreListings perdidos (ocultos hasta tocar el botón) ──
+  if(window.verPLPerdidos){
+    h+=`<div style="font-size:14px;font-weight:500;margin:1rem 0 8px;color:#791F1F">PreListings perdidos <span style="font-size:12px;font-weight:400;color:#888;margin-left:6px">${plPerdidos.length}</span></div>`;
+    const cuentaMotivos={}; plPerdidos.forEach(pl=>{ const k=pl.motivoPerdida||'Sin motivo'; cuentaMotivos[k]=(cuentaMotivos[k]||0)+1; });
+    if(plPerdidos.length){
+      h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+Object.entries(cuentaMotivos).sort((a,b)=>b[1]-a[1]).map(([k,v])=>
+        `<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:${k==='Sin motivo'?'#f0efe9;color:#888':'#FCEBEB;color:#791F1F'}">${k}: ${v}</span>`).join('')+'</div>';
+    }
+    h+='<div class="table-wrap"><div style="overflow-x:auto"><table style="table-layout:auto;min-width:880px"><thead><tr><th>N° Trackeo</th><th>Contacto</th><th>Dirección</th><th>Ingreso</th><th>Perdido</th><th>Motivo</th><th>Nota</th><th></th></tr></thead><tbody>';
+    if(!plPerdidos.length){
+      h+='<tr><td colspan="8" style="padding:1.5rem;text-align:center;color:#aaa">No hay prelistings perdidos.</td></tr>';
+    } else {
+      plPerdidos.slice().sort((a,b)=>(b.fechaPerdida||'').localeCompare(a.fechaPerdida||'')).forEach(pl=>{ const ri=carteraPLs.indexOf(pl);
+        h+=`<tr>
+          <td><span class="tracking-num">${pl.trackingNum||'—'}</span></td>
+          <td>${pl.contactName||'—'}</td>
+          <td style="font-size:12px;color:#888">${pl.direccion||'—'}</td>
+          <td style="font-size:12px;color:#888">${pl.fecha?pl.fecha.split('-').reverse().join('/'):'—'}</td>
+          <td style="font-size:12px;color:#888">${pl.fechaPerdida?pl.fechaPerdida.split('-').reverse().join('/'):'—'}</td>
+          <td style="font-size:12px;white-space:normal;max-width:220px">${pl.motivoPerdida?`<span style="color:#791F1F;font-weight:500">${pl.motivoPerdida}</span>`:'<span style="color:#ccc">—</span>'}${pl.detallePerdida?`<div style="font-size:11px;color:#888">${pl.detallePerdida}</div>`:''}
+            <button onclick="abrirModalMotivoPL(${ri})" title="Editar motivo" style="font-size:10px;padding:1px 6px;margin-left:2px;border:1px solid #e0dfd8;background:#fff;border-radius:6px;cursor:pointer">✎</button></td>
+          <td style="font-size:12px;color:#888">${pl.nota||'—'}</td>
+          <td style="white-space:nowrap">
+            <button onclick="reactivarPL(${ri})" class="btn-sec" style="font-size:11px;padding:3px 8px;margin-right:4px">↩ Reactivar</button>
+            <button onclick="eliminarPL(${ri})" style="font-size:11px;padding:3px 8px;background:#FCEBEB;color:#A32D2D;border:none;border-radius:6px;cursor:pointer">✕</button>
+          </td>
+        </tr>`;
+      });
+    }
+    h+='</tbody></table></div></div>';
+  }
 
   // ── Registro de propiedades vendidas ──
   if(propiedadesVendidas.length > 0){
@@ -2027,10 +2062,67 @@ function cambiarEstadoPL(i, val){
     } else {
       carteraPLs[i].estado = 'Captada'; // just update status without moving
     }
+  } else if(val==='Perdida'){
+    abrirModalMotivoPL(i); return; // se confirma en el pop up
   } else {
     carteraPLs[i].estado=val;
   }
   renderCartera();
+}
+
+function toggleVerPLPerdidos(){ window.verPLPerdidos=!window.verPLPerdidos; renderCartera(); }
+
+function reactivarPL(i){
+  const pl=carteraPLs[i]; if(!pl) return;
+  pl.estado='Pendiente';
+  delete pl.fechaPerdida; delete pl.motivoPerdida; delete pl.detallePerdida;
+  renderCartera();
+}
+
+const PL_MOTIVOS_PERDIDA = ['Otro agente Remax','Otra inmobiliaria','Falta exclusividad','Vendida','No venden más','Precio imposible'];
+let _plMotivoIdx = null;
+function abrirModalMotivoPL(i){
+  const pl=carteraPLs[i]; if(!pl) return;
+  _plMotivoIdx=i;
+  let m=document.getElementById('modal-motivo-pl');
+  if(!m){
+    m=document.createElement('div'); m.className='overlay'; m.id='modal-motivo-pl';
+    m.innerHTML=`<div class="modal" style="max-width:400px">
+      <h3>¿Por qué se perdió?</h3>
+      <div id="mmpl-nombre" style="font-size:13px;color:#555;margin-bottom:10px"></div>
+      <label class="field-label">Motivo <span class="req">*</span></label>
+      <div id="mmpl-opciones" style="display:grid;gap:6px;margin-top:4px"></div>
+      <label class="field-label">Detalle</label>
+      <input type="text" id="mmpl-detalle" placeholder="Opcional (ej: la tomó Juan de Remax Centro)"/>
+      <div class="modal-btns">
+        <button class="btn-sec" onclick="cerrarModalMotivoPL()">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarMotivoPL()">Guardar</button>
+      </div></div>`;
+    m.addEventListener('click',e=>{if(e.target===m)cerrarModalMotivoPL();});
+    document.body.appendChild(m);
+  }
+  document.getElementById('mmpl-nombre').textContent=(pl.contactName||'')+(pl.direccion?' · '+pl.direccion:'')+(pl.trackingNum?' · '+pl.trackingNum:'');
+  document.getElementById('mmpl-opciones').innerHTML=PL_MOTIVOS_PERDIDA.map(mo=>
+    `<label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 10px;border:1px solid #e0dfd8;border-radius:8px;cursor:pointer">
+      <input type="radio" name="mmpl-motivo" value="${mo}" ${pl.motivoPerdida===mo?'checked':''} style="width:auto;margin:0"> ${mo}</label>`).join('');
+  document.getElementById('mmpl-detalle').value=pl.detallePerdida||'';
+  m.classList.add('open');
+}
+function cerrarModalMotivoPL(){
+  document.getElementById('modal-motivo-pl')?.classList.remove('open');
+  _plMotivoIdx=null;
+  renderCartera(); // si canceló, el selector vuelve a su estado anterior
+}
+function confirmarMotivoPL(){
+  const pl=carteraPLs[_plMotivoIdx]; if(!pl) return;
+  const sel=document.querySelector('input[name="mmpl-motivo"]:checked');
+  if(!sel){ alert('Elegí el motivo por el que se perdió.'); return; }
+  const yaEraPerdida = pl.estado==='Perdida';
+  pl.estado='Perdida';
+  pl.motivoPerdida=sel.value;
+  pl.detallePerdida=document.getElementById('mmpl-detalle').value.trim();
+  if(!pl.fechaPerdida && !yaEraPerdida){ const d=new Date(); pl.fechaPerdida=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  cerrarModalMotivoPL();
 }
 
 function eliminarPL(i){
